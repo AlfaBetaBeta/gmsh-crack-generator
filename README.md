@@ -13,11 +13,11 @@ Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown b
 
 The surfaces to be duplicated need to be tagged as well. Although in this simplistic example there is only one feasible surface, in an extensive solid mesh many such surfaces may coalesce into a (possibly curved) crack surface. Each crack surface can have its own physical tag (here `"crack_horizontal"`) or they can share a common tag. The reason behind individual tagging is that, after duplication, each surface and its duplicate can be further transformed into a zero-thickness interface element and it may be convenient to differentiate between sets of crack surfaces (i.e. interface types) to assign them different material properties. The explicit transformation into interface elements is not addressed here, as it is FE engine dependent, but indication is made as to how it could be done wherever appropriate. Regardless of the number of physical tags for crack surfaces, **all** surfaces to be duplicated need to be grouped by a common tag (here `"s2in"`). Ultimately, this is necessary precisely to facilitate the definition of interface elements, as will become apparent with the examples.
 
-Shifting focus back on the simplistic mesh, once `crack.py` is executed (caveats on execution syntax can be found in subsequent test examples), the tagged surface is duplicated, effectively decoupling the two adjacent solid elements. This is shown below, whereby a virtual crack opening is induced for visual clarity (in reality the duplicated nodes along the crack surface initially overlap in the same location). 
+Shifting focus back on the simplistic mesh, once `crack.py` is executed (caveats on execution syntax can be found in subsequent test examples), the tagged surface is duplicated, effectively decoupling the two adjacent solid elements. This is shown below, whereby a virtual crack opening is induced for visual clarity (in reality the nodes at each crack side initially overlap in the same location). 
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-nodes-elmts.png" width=100% height=100%>
 
-The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and 
+The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and the number of elements has increased by 1
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
