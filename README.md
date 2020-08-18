@@ -17,11 +17,13 @@ Shifting focus back on the simplistic mesh, once `crack.py` is executed (caveats
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-nodes-elmts.png" width=100% height=100%>
 
-The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and the number of elements has increased by 1, as highlighted below. Note that the new surface element has the general common physical tag (`4`, i.e. `"s2in"`), it is bounded by the new nodes (33-40) but **shares the same elementary tag as the original surface** (`27` in this case). 
+The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and the number of elements has increased by 1, as highlighted below. Note that the new surface element has the general common physical tag (`4`, i.e. `"s2in"`), it is bounded by the new nodes but **shares the same elementary tag as the original surface**. 
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-elements-aux.png" width=100% height=100%>
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-elements-aux.png" width=60% height=60%>
 
-This is not conflicting 
+This is not conflicting in gmsh (the resulting cracked `msh` file can be opened for inspection without error) and is in fact a convenient way to trace the surface pairs that would form an interface should this be necessary. Indeed, elements `1`, `2` and `7` above have all the necessary information to define a quadratic 16-noded interface element and it readily allows for a programmatic approach in the case of extensive solid meshes.
+
+
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
