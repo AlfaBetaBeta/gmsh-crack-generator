@@ -7,13 +7,15 @@ The `.msh` file containing the (uncracked) solid mesh is the main input argument
 
 ## Introduction
 
-Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown below. For element-based FE engines, it might be necessary to assign two different physical tags to the solid elements: one tag (`"bulk"`) would identify the group, for convenient association with constitutive models to represent the material, and the other tag (`"solid_type_1"`) would convey information about the element's self weight. Typically these two strings would be programmatically processed when integrating the data into the FE engine. They are given descriptive dummy values here for illustration. Although some FE engines may not require this type of element characterisation, the script in its current form expects double physical tagging for all solid elements.
+Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown below. For element-based FE engines, it might be necessary to assign two different physical tags to the solid elements: one tag (`"bulk"`) would identify the group, for convenient association with constitutive models to represent the material, and the other tag (`"solid_type_1"`) would convey information about the element's self weight. Typically these two strings would be programmatically processed when integrating the data into the FE engine, though they are given descriptive dummy values here for illustration. Although some FE engines may not require this type of element characterisation, the script in its current form expects double physical tagging for all solid elements.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/pre-crack-pe-elmts.png" width=100% height=100%>
 
+The surfaces to be duplicated need to be tagged as well. Although in this simplistic example there is only one feasible surface, in an extensive solid mesh many such surfaces may coalesce into a (possibly curved) crack surface. Each crack surface can have its own physical tag (here `"crack_horizontal"`) or they can share a common tag. The reason behind individual tagging is that, after duplication, each surface and its duplicate can be further transformed into a zero-thickness interface element and it may be convenient to differentiate between sets of crack surfaces (i.e. interface types) to assign them different material properties. The explicit transformation into interface elements is not addressed here, as it is FE engine dependent, but indication is made as to how it could be done wherever appropriate. Regardless of the number of physical tags for crack surfaces, **all** surfaces to be duplicated need to be grouped by a common tag (here `"s2in"`). Ultimately, this is necessary precisely to facilitate the definition of interface elements, as will become apparent with the examples.
 
+Shifting focus back on the simplistic mesh, once `crack.py` is executed (caveats on this in subsequent test examples), 
 
-
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-elmts.png" width=100% height=100%>
 
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
