@@ -1,6 +1,15 @@
-# gmsh-crack-generator
+# gmsh plugin for crack generation in 3D FE meshes
 
-This is a procedural version of the plugin to create cracks inside a 3D mesh by duplicating surface elements. It is based on Pandas and uses DataFrames as the main data structure. In its current form, the script is functional and can deal with crack planes not completely going through the bulk or intersecting crack planes.
+This is a procedural version of a plugin to create cracks inside a solid 3D mesh by duplicating tagged surface elements. It is based on Pandas and uses DataFrames and dictionaries as the main data structures.
+
+The `.msh` file containing the (uncracked) solid mesh is the main input argument for the python script `crack.py`, which will return an updated `.msh` file embedding the cracks upon execution. The main caveats and limitations of the program are showcased below by means of a series of test examples.
+
+
+## Introduction
+
+Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown below.
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/pre-crack-pe-elmts.png" width=100% height=100%>
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
