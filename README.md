@@ -1,15 +1,20 @@
 # gmsh plugin for crack generation in 3D FE meshes
 
-This is a procedural version of a plugin to create cracks inside a solid 3D mesh by duplicating tagged surface elements. It is based on Pandas and uses DataFrames and dictionaries as the main data structures.
+This is a procedural version of a program to create cracks inside a solid 3D mesh by duplicating tagged surface elements. It is based on Pandas and uses DataFrames and dictionaries as the main data structures.
 
 The `.msh` file containing the (uncracked) solid mesh is the main input argument for the python script `crack.py`, which will return an updated `.msh` file embedding the cracks upon execution. The main caveats and limitations of the program are showcased below by means of a series of test examples.
 
 
 ## Introduction
 
-Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown below.
+Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown below. For element-based FE engines, it might be necessary to assign two different physical tags to the solid elements: one tag (`"bulk"`) would identify the group, for convenient association with constitutive models to represent the material, and the other tag (`"solid_type_1"`) would convey information about the element's self weight. Typically these two strings would be programmatically processed when integrating the data into the FE engine. They are given descriptive dummy values here for illustration. Although some FE engines may not require this type of element characterisation, the script in its current form expects double physical tagging for all solid elements.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/pre-crack-pe-elmts.png" width=100% height=100%>
+
+
+
+
+
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
