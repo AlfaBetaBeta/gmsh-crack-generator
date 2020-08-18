@@ -17,7 +17,11 @@ Shifting focus back on the simplistic mesh, once `crack.py` is executed (caveats
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-nodes-elmts.png" width=100% height=100%>
 
-The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and the number of elements has increased by 1
+The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and the number of elements has increased by 1, as highlighted below. Note that the new surface element has the general common physical tag (`4`, i.e. `"s2in"`), it is bounded by the new nodes (33-40) but **shares the same elementary tag as the original surface** (`27` in this case). 
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-elements-aux.png" width=100% height=100%>
+
+This is not conflicting 
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
