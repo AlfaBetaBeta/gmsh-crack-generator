@@ -46,7 +46,7 @@ This will result in a new `.msh` file stored in the working directory, retaining
 
 
 
-
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-post-crack.png" width=100% height=100%>
 
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
