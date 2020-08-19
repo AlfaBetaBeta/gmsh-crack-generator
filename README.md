@@ -44,10 +44,12 @@ $ python crack.py test1.msh \[3,4]
 ``` 
 This will result in a new `.msh` file stored in the working directory, retaining the original file name but prepended with `cracked_`. Thus in this case the output is `cracked_test1.msh`.
 
-
-
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-post-crack.png" width=100% height=100%>
 
+As expected, the cracked mesh comprises 8 additional nodes (52-59), which requires updating the nodal definition of two hexahedrons, as highlighted above. As ever, the crack has been artificially widened for clarity, as will be the case in all remaining test examples.
+
+
+## Test example 2
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
@@ -69,4 +71,3 @@ $ python crack.py example.msh [[12,13],[14,15,16,17,18],19] 1,20,5,20,7,20,8,20,
 $ ls
 example.msh cracked_example.msh
 ```
-The output will be an enhanced `msh` file, retaining the original file name prepended with `cracked_`.
