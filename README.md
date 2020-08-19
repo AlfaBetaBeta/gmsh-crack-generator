@@ -23,6 +23,13 @@ The total number of nodes in the mesh has increased by 8, as expected (nodes 33-
 
 This is not conflicting in gmsh (the resulting cracked `msh` file can be opened for inspection without error) and is in fact a convenient way to trace the surface pairs that would form an interface should this be necessary. Indeed, elements `1`, `2` and `7` above have all the necessary information to define a quadratic 16-noded interface element and it readily allows for a programmatic approach in the case of extensive solid meshes.
 
+In principle, the process of duplicating the tagged surface follows a simple geometric criterion. The ordering of the corner nodes determines a direction (right-hand rule) which is interpreted to point from *bottom* to *top*, whereby these terms are to be understood notionally as the opposite subdomains that the crack divides adjacent solid elements into. They do not have to be intuitive, as in the figure below, as they purely stem from node ordering. 
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/surface-normal-aux.png" width=100% height=100%>
+
+
+
+
 
 
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
