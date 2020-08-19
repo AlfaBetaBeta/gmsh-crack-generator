@@ -51,6 +51,14 @@ As expected, the cracked mesh comprises 8 additional nodes (52-59), which requir
 
 ## Test example 2
 
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test2/test2-pre-crack.png" width=100% height=100%>
+
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test2/test2-post-crack.png" width=100% height=100%>
+
+
+## Caveats and shortcomings
+
 Partitioning of the solid mesh can be dealt with, as the `make_crack()` function includes code to partition the crack surface elements accordingly.
       
 A preprocessing function `preproc_df()` is included to ensure that the surface elements contained in the DataFrame `df_elm` have all a unique elementary tag.
@@ -64,10 +72,4 @@ If a continuous crackplane is curved, and depending on the ordering of the crack
 The main script needs 3 arguments:
 * name of the `msh` file
 * crack physical tags, with some pairs being possibly coupled if they belong to the same crack plane (e.g. `[1,[2,3],4]`)
-* physical tags of the solids in the mesh, paired as itertuples
-```
-$ python crack.py example.msh [[12,13],[14,15,16,17,18],19] 1,20,5,20,7,20,8,20,9,23,10,20,11,24
 
-$ ls
-example.msh cracked_example.msh
-```
