@@ -38,7 +38,14 @@ Consider a mesh of 4 quadratic hexahedrons with a single vertical crack plane no
 ```
 $ python crack.py name_of_the_mesh_file.msh [list with all surface physical tags]
 ```
-In general, the list with the surface tags can be arbitrarily long (recall that different crack planes may be assigned different tags should this be convenient) but in any case **the last list item must be the common tag encapsulating all surfaces**. In this example, such list is simply `[3,4]`. 
+In general, the list with the surface tags can be arbitrarily long (recall that different crack planes may be assigned different tags should this be convenient) but in any case **the last list item must be the common tag encapsulating all surfaces**. In this example, such list is simply `[3,4]`. If the arguments were passed from within an interpreter (e.g. Spyder: `Run/Configuration per file.../Command line options`) the list could be passed as is, but from the terminal it needs to prepended by `\` to avoid confusion with pattern matching. Hence, execution of the script on `test1.msh` from the terminal reads:
+```
+$ python crack.py test1.msh \[3,4]
+``` 
+This will result in a new `.msh` file stored in the working directory, retaining the original file name but prepended with `cracked_`. Thus in this case the output is `cracked_test1.msh`.
+
+
+
 
 
 
