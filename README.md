@@ -27,7 +27,7 @@ In principle, the process of duplicating the tagged surface follows a simple geo
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/surface-normal-aux.png" width=70% height=70%>
 
-The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are in place to accommodate this.
+The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are indeed in place to accommodate this.
 
 
 ## Test example 1
@@ -36,7 +36,7 @@ The *bottom* solid retains the original surface nodes, whereas the *top* solid i
 
 Consider a mesh of 4 quadratic hexahedrons with a single vertical crack plane not fully cutting through the solid bulk, as shown above. The physical tags are also included in the image and follow the criteria mentioned in the previous section. With this in mind, the syntax for executing the script from the command line requires two arguments and reads as follows:
 ```
-$ python crack.py name_of_the_mesh_file.msh [list with all surface physical tags]
+$ python crack.py name_of_the_mesh_file.msh [list with all (crack) surface physical tags]
 ```
 In general, the list with the surface tags can be arbitrarily long (recall that different crack planes may be assigned different tags should this be convenient) but in any case **the last list item must be the common tag encapsulating all surfaces**. In this example, such list is simply `[3,4]`. If the arguments were passed from within an interpreter (e.g. Spyder: `Run/Configuration per file.../Command line options`) the list could be passed as is, but from the terminal it needs to prepended by `\` to avoid confusion with pattern matching. Hence, execution of the script on `test1.msh` from the terminal reads:
 ```
@@ -55,6 +55,12 @@ As expected, the cracked mesh comprises 8 additional nodes (52-59), which requir
 
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test2/test2-post-crack.png" width=100% height=100%>
+
+
+## Test example 3
+
+
+## Test example 4
 
 
 ## Caveats and shortcomings
