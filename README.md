@@ -25,7 +25,7 @@ This is not conflicting in gmsh (the resulting cracked `msh` file can be opened 
 
 In principle, the process of duplicating the tagged surface follows a simple geometric criterion. The ordering of the corner nodes determines a direction (right-hand rule) which is interpreted to point from *bottom* to *top*, whereby these terms are to be understood notionally as the opposite subdomains that the crack divides adjacent solid elements into. They do not have to be intuitive, as in the figure below, as they purely stem from node ordering. 
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/surface-normal-aux.png" width=100% height=100%>
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/surface-normal-aux.png" width=80% height=80%>
 
 
 
