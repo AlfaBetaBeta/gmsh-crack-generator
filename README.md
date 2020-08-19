@@ -34,11 +34,11 @@ The *bottom* solid retains the original surface nodes, whereas the *top* solid i
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-pre-crack.png" width=100% height=100%>
 
-Consider a mesh of 4 quadratic hexahedrons with a single vertical crack plane not fully cutting through the solid bulk, as shown above. The physical tags are also included in the image and follow the criteria mentioned in the previous section. With this in mind, the syntax for executing the script is as follows:
+Consider a mesh of 4 quadratic hexahedrons with a single vertical crack plane not fully cutting through the solid bulk, as shown above. The physical tags are also included in the image and follow the criteria mentioned in the previous section. With this in mind, the syntax for executing the script from the command line requires two arguments and reads as follows:
 ```
 $ python crack.py name_of_the_mesh_file.msh [list with all surface physical tags]
 ```
-In general, the list with the surface tags can be arbitrarily long (recall that different crack planes may be assigned different tags should this be convenient) but in any case **the last item must be the common tag encapsulating all surfaces** (`"s2in"` in this case).
+In general, the list with the surface tags can be arbitrarily long (recall that different crack planes may be assigned different tags should this be convenient) but in any case **the last list item must be the common tag encapsulating all surfaces**. In this example, such list is simply `[3,4]`. 
 
 
 
