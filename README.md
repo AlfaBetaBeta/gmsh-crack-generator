@@ -53,11 +53,22 @@ As expected, the cracked mesh comprises 8 additional nodes (52-59), which requir
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test2/test2-pre-crack.png" width=100% height=100%>
 
-
+Slightly increasing the level of complexity, let's consider now the case of a mesh with various crack tags (`3`, `4` and `5` above). Note that the same tag may apply to separate crack planes (`3`) or that different tags may be coplanar (`3` and `4`), for example if they were meant to ultimately be transformed into interface elements of different material properties. Just bear in mind that, when passing the list argument, **coplanarity needs to be explicitly denoted as a sub-list**:
+```
+$ python crack.py test2.msh \[\[3,4],5,6]
+```
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test2/test2-post-crack.png" width=100% height=100%>
+
+Despite involving two distinct tags, the larger (left) crack plane correctly embeds 13 new nodes.
 
 
 ## Test example 3
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test3/test3-pre-crack.png" width=100% height=100%>
+
+
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test3/test3-post-crack.png" width=100% height=100%>
 
 
 ## Test example 4
