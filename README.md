@@ -89,7 +89,7 @@ $ python crack.py test4.msh \[3,4,5]
 
 As expected, there are 21 additional nodes in the cracked mesh. Inspecting these in more detail below, it can be seen that for example original node `16` was initially duplicated as node `129` and this one was in turn duplicated again as node `137`.
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/post-crack-with-nodes-transparent.png" width=100% height=100%> 
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/post-crack-with-nodes-transparent.png" width=80% height=80%> 
 
 
 ## Caveats and shortcomings
