@@ -81,15 +81,20 @@ As can be seen below (where some nodes have been removed for clarity), the surfa
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/test4-pre-crack.png" width=100% height=100%>
 
-Another potential corner case that is accommodated is that of intersecting crack planes under different physical tags. Since these planes are not coplanar they are processed at different stages and some nodes (e.g. node `16` above) may need to have their duplicate in turn re-duplicated. However, this all happens transparently and thus execution follows the same guidelines showcased in previous examples:
+Another potential corner case that is accommodated is that of intersecting crack planes under different physical tags. Since these planes are not coplanar they are processed at different stages and some nodes at the intersection (e.g. node `16` above) may need to have their duplicate in turn re-duplicated. However, this all happens transparently and thus execution follows the same guidelines showcased in previous examples:
 ```
 $ python crack.py test4.msh \[3,4,5]
 ```
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/test4-post-crack.png" width=100% height=100%>
 
-As expected, there are 21 additional nodes in the cracked mesh. Inspecting these in more detail below, it can be seen that for example original node `16` was initially duplicated as node `129` and this one was in turn duplicated again as node `137`.
+As expected, there are 21 additional nodes in the cracked mesh. Inspecting these in more detail below, it can be seen that for example that original node `16` was initially duplicated as node `129` and this one was in turn duplicated again as node `137`.
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/post-crack-with-nodes-transparent.png" width=80% height=80%> 
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/post-crack-with-nodes-transparent.png" width=70% height=70%> 
+
+
+## Application example
+
+Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented below, comprising a multi-span arch bridge. 
 
 
 ## Caveats and shortcomings
