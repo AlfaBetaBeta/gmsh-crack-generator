@@ -66,9 +66,15 @@ Despite involving two distinct tags, the larger (left) crack plane correctly emb
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test3/test3-pre-crack.png" width=100% height=100%>
 
-
+At the time of developing `crack.py`, gmsh would not add partition physical tags to the surface elements' taglist when partitioning a three-dimensional solid mesh. This is transparently addressed by the script, which in its current form expects the lack of partition tagging on surfaces to **always be the case** and ultimately adds such tags during processing. Execution does consequently not differ from the case that the mesh were monolithic:
+```
+$ python crack.py test3.msh \[3,4]
+```
+As can be seen below (where some nodes have been removed for clarity), the surfaces in the cracked mesh have been assigned a partition tag. If the surfaces and their duplicates are meant to be transformed into interface elements, special provisions might be necessary for the case that the crack surface is coplanar with a partition boundary, though this is FE engine dependent and is not further adressed here.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test3/test3-post-crack.png" width=100% height=100%>
+
+The gmsh plugin `SimplePartition` does seem to assign partition tags to surfaces, as opposed to resorting to `Modules/Mesh/Partition` in the GUI. If the plugin were used to create the partitions, execution of `crack.py` would not fail but it would produce an inconsistent `.msh` file. This case is yet to be addressed and an upgrade will be released in due course.
 
 
 ## Test example 4
