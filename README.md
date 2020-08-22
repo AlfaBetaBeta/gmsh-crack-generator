@@ -98,11 +98,11 @@ Finally, and in order to showcase all previous features in a single mesh, a more
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-materials.png" width=100% height=100%>
 
-This mesh would suitable for modelling at macroscale, i.e. without taking into account anisotropies or distinguishing brick and mortar explicitly. It might of interest, however, to consider the frictional effects arising in the contact surfaces:
+This mesh would be suitable for modelling at macroscale, i.e. without taking into account anisotropies or distinguishing brick and mortar explicitly. It might be of interest, however, to consider the frictional effects arising in the contact surfaces:
 * between the backfill/ballast and the inner side of the spandrel walls.
 * between the backing/backfill and the extrados of all arches.
 
-To this end, all surfaces in these contact regions are programmatically retrieved and conveniently tagged, as highlighted below. Note that the corresponding surface physical tags are `g_*2*` and the general common tag, consistently with all previous test examples, is `s2in`.
+To this end, all surfaces in these contact regions are programmatically retrieved and conveniently tagged, as highlighted below. Note that the corresponding surface physical tags are `"g_*2*"` and the general common tag, consistently with all previous test examples, is `"s2in"`.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-frictional-surfaces.png" width=100% height=100%>
 
