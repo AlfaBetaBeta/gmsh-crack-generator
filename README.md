@@ -17,17 +17,17 @@ Shifting focus back on the simplistic mesh, once `crack.py` is executed (guideli
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-nodes-elmts.png" width=100% height=100%>
 
-The total number of nodes in the mesh has increased by 8, as expected (nodes 33-40 form the new surface) and the number of elements has increased by 1, as highlighted below. Note that the new surface element has the general common physical tag (`4`, i.e. `"s2in"`), it is bounded by the new nodes but **shares the same elementary tag as the original surface**. 
+The total number of nodes in the mesh has increased by 8, as expected (nodes `33`-`40` form the new surface) and the number of elements has increased by 1, as highlighted below. Note that the new surface element has the general common physical tag (`4`, i.e. `"s2in"`), it is bounded by the new nodes but **shares the same elementary tag as the original surface**. 
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/post-crack-elements-aux.png" width=60% height=60%>
 
 This is not conflicting in gmsh (the resulting cracked `.msh` file can be opened for inspection without error) and is in fact a convenient way to trace the surface pairs that would form an interface should this be necessary. Indeed, elements `1`, `2` and `7` above have all the necessary information to define a quadratic 16-noded interface element and it readily allows for a programmatic approach in the case of extensive solid meshes.
 
-In principle, the process of duplicating the tagged surface follows a simple geometric criterion. The ordering of the corner nodes determines a direction (right-hand rule) which is interpreted to point from *bottom* to *top*, whereby these terms are to be understood notionally as the opposite subdomains that the crack divides adjacent solid elements into. They do not have to be intuitive, as happens to be the case in the figure below, they purely stem from node ordering. 
+In principle, the process of duplicating the tagged surface follows a simple geometric criterion. The ordering of the corner nodes determines a direction (right-hand rule) which is interpreted to point from *bottom* to *top*, whereby these terms are to be understood notionally as the opposite subdomains that the crack divides adjacent solid elements into. They do not have to be intuitive, as happens to be the case in the figure below, they purely stem from node ordering. In this example, the first four nodes forming the surface element are `5`,`6`,`7`,`8`.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/surface-normal-aux.png" width=70% height=70%>
 
-The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are indeed in place to accommodate this.
+The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is virtually open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are indeed in place to accommodate this.
 
 
 ## Test example 1
@@ -46,7 +46,7 @@ This will result in a new `.msh` file stored in the working directory, retaining
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-post-crack.png" width=100% height=100%>
 
-As expected, the cracked mesh comprises 8 additional nodes (52-59), which requires updating the nodal definition of two hexahedrons, as highlighted above. As ever, the crack has been artificially widened for clarity, as will be the case in all remaining test examples.
+As expected, the cracked mesh comprises 8 additional nodes (`52`-`59`), which requires updating the nodal definition of two hexahedrons, as highlighted above. As ever, the crack has been artificially widened for clarity, as will be the case in all remaining test examples.
 
 
 ## Test example 2
@@ -87,15 +87,22 @@ $ python crack.py test4.msh \[3,4,5]
 ```
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/test4-post-crack.png" width=100% height=100%>
 
-As expected, there are 21 additional nodes in the cracked mesh. Inspecting these in more detail below, it can be seen that for example that original node `16` was initially duplicated as node `129` and this one was in turn duplicated again as node `137`.
+As expected, there are 21 additional nodes in the cracked mesh. Inspecting these in more detail below, it can be seen for example that original node `16` was initially duplicated as node `129` and this one was in turn duplicated again as node `137`.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/post-crack-with-nodes-transparent.png" width=70% height=70%> 
 
 
 ## Application example
 
-Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented below, comprising a multi-span arch bridge. 
+Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented below, comprising a three-span arch bridge. The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing self-weight):
 
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-materials.png" width=100% height=100%>
+
+This mesh is suitable for modelling at macroscale, i.e. without taking into account anisotropies or distinguishing brick and mortar explicitly. It would be interesting, however, to consider the frictional effects arising in the contact surfaces:
+* between the backfill/ballast and the inner side of the spandrel walls.
+* between the backing/backfill and the extrados of all arches.
+
+To this end, 
 
 ## Caveats and shortcomings
 
