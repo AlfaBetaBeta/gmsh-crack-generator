@@ -94,7 +94,7 @@ As expected, there are 21 additional nodes in the cracked mesh. Inspecting these
 
 ## Application example
 
-Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented here, comprising a three-span arch bridge. The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing self-weight):
+Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented here, comprising a three-span arch bridge. The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing their self-weight):
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-materials.png" width=100% height=100%>
 
@@ -104,7 +104,7 @@ This mesh would be suitable for modelling at macroscale, i.e. without taking int
 
 To this end, all surfaces in these contact regions are programmatically retrieved and conveniently tagged, as highlighted below. Note that the corresponding surface physical tags are `"g_*2*"` and the general common tag, consistently with all previous test examples, is `"s2in"`.
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-frictional-surfaces.png" width=100% height=100%>
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-interface-physical-tags.png" width=100% height=100%>
 
 .
 
