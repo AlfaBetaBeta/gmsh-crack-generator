@@ -106,6 +106,10 @@ To this end, all surfaces in these contact regions are programmatically retrieve
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-interface-physical-tags.png" width=100% height=100%>
 
+Additionally, and to leverage the benefits of parallel computing, the solid mesh is partitioned in 6. As mentioned in test example 3, partitioning initially involves only the higher dimensional elements, in this case the hexahedrons and wedges:
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/solid-partition-labels.png" width=100% height=100%>
+
 .
 
 ## Caveats and shortcomings
