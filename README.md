@@ -94,15 +94,19 @@ As expected, there are 21 additional nodes in the cracked mesh. Inspecting these
 
 ## Application example
 
-Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented below, comprising a three-span arch bridge. The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing self-weight):
+Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented here, comprising a three-span arch bridge. The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing self-weight):
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-materials.png" width=100% height=100%>
 
-This mesh is suitable for modelling at macroscale, i.e. without taking into account anisotropies or distinguishing brick and mortar explicitly. It would be interesting, however, to consider the frictional effects arising in the contact surfaces:
+This mesh would suitable for modelling at macroscale, i.e. without taking into account anisotropies or distinguishing brick and mortar explicitly. It might of interest, however, to consider the frictional effects arising in the contact surfaces:
 * between the backfill/ballast and the inner side of the spandrel walls.
 * between the backing/backfill and the extrados of all arches.
 
-To this end, 
+To this end, all surfaces in these contact regions are programmatically retrieved and conveniently tagged, as highlighted below. Note that the corresponding surface physical tags are `g_*2*` and the general common tag, consistently with all previous test examples, is `s2in`.
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-frictional-surfaces.png" width=100% height=100%>
+
+.
 
 ## Caveats and shortcomings
 
