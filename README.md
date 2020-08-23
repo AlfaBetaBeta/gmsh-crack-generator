@@ -130,18 +130,17 @@ Apart from these remarks, this bridge mesh notionally replicates the same featur
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/cracking-interfaces.png" width=100% height=100%>
 
-Illustratively, partition 5 after cracking is shown in more detail below, whereby a local crack opening has been introduced on each surface sub-list for clarity:
+Illustratively, partition 2 after cracking is shown in more detail below, whereby a local crack opening has been introduced on each surface sub-list for clarity:
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/cracked-partition2.png" width=75% height=75%>
 
 
 ## Caveats and shortcomings
 
-A preprocessing function `preproc_df()` is included to ensure that the surface elements contained in the DataFrame `df_elm` have all a unique elementary tag.
-      
-Only solid elements bk20 (20-noded-hexahedron) and wd15 (15-noded-wedge) are considered. Should the mesh contain other types of elements (e.g. tt10/10-noded-tetrahedron), some functions would need updating.
-      
-It is assumed that any crack surface element can only have 2 physical tags (`*joint` group and `s2in` group). In theory a third tag could be present if any such surface were subject to restraints (e.g. r_x+z). This version cannot handle this yet.
+* In its current form, the program only considers solid meshes formed by **20-noded hexahedrons** or **15-noded wedges**. Should the `.msh` file contain other types of elements (e.g. 10-noded tetrahedrons), some functions would need updating. This will be addressed in due course.
 
-If a continuous crackplane is curved, and depending on the ordering of the crack surface elements (which determines the ordering in which they are processed), the orientation of the crack (determining what is its 'top' and 'bottom') may become ambiguous. For now, inspection of the crack ordering in the .msh file via gmsh is necessary until a general solution is developed.
+* In the [introduction](https://github.com/AlfaBetaBeta/gmsh-crack-generator#introduction) it is stated that the common elementary tag (between a surface and its duplicates) can be useful to programmatically retrieve those for interface element generation. For this to be true, however, said elementary tags **must be unique**. This is explicitly ensured via function `preproc_df()` which handles the surface elements contained in the DataFrame `df_elm`, making sure all have a unique elementary tag.
+      
+* It is assumed that **any crack surface element can only have 2 physical tags** (in the bridge example, `"g_*2*"` and `"s2in"`). In theory a third tag could be present if any such surface were subject to restraints (e.g. like `"r_x+y+z"` for the surfaces at the bottom of the bridge piers). This could be the case if it were intended to apply boundary conditions on one side of an interface and attach a solid on the other. In its current form, the program cannot handle this yet.
 
+* The way to ensure that all surfaces embedded in a crack plane share the same criterion for *top* and *bottom* adjacent solids is by means of a simple geometric check, comparing the normal of the surface in process with the average of all previously processed surfaces belonging to the same crack plane. If such crack plane is significantly curved, and depending on the ordering of the crack surface elements (which determines the ordering in which they are processed), the orientation of the crack (determining what is its *top* and *bottom*) may become ambiguous. For example, this could be the case if the arches in the bridge mesh were semi-circular and the first and second surface elements in crack plane `14` (`"g_sp2ar"`) were located at opposite springings. Until a more robust geometric check is developed, manual inspection of the crack ordering in the `.msh` file is recommended in such cases.
