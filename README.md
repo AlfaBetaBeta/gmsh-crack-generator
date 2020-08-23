@@ -145,7 +145,7 @@ Illustratively, partition 2 after cracking is shown in more detail below, whereb
     * `$Nodes`
     * `$Elements`
 
-* In the [introduction](https://github.com/AlfaBetaBeta/gmsh-crack-generator#introduction) it is stated that the common elementary tag (between a surface and its duplicates) can be useful to programmatically retrieve those for interface element generation. For this to be true, however, said elementary tags **must be unique**. This is explicitly ensured via function `preproc_df()` which handles the surface elements contained in the DataFrame `df_elm`, making sure all have a unique elementary tag.
+* In the [introduction](https://github.com/AlfaBetaBeta/gmsh-crack-generator#introduction) it is stated that the common elementary tag (between a surface and its duplicates) can be useful to programmatically retrieve those for interface element generation. For this to be true, however, said elementary tags **must be unique**. This is explicitly ensured by one of the functions in the script.
       
 * It is assumed that **any crack surface element can only have 2 physical tags** (in the bridge example, `"g_*2*"` and `"s2in"`). In theory a third tag could be present if any such surface were subject to restraints (e.g. like `"r_x+y+z"` for the surfaces at the bottom of the bridge piers, which were assumed uncracked). This could be the case if it were intended to apply boundary conditions on one side of an interface and attach a solid element on the other. In its current form, the program cannot handle this yet.
 
