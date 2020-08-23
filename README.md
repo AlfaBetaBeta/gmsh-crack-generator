@@ -123,7 +123,7 @@ With all the above in mind, the cracking program can be run simply by executing:
 $ python crack.py bridge.msh \[\[12,13],\[14,15,16,17,18],19]
 ```
 Note the two sub-lists embedded in the second argument:
-* `12` and `13` are intuitively coplanar, the only reason for their distinct tagging is that in this case cracks will be further transformed into interface elements (through another utility program not included here), and these interfaces will have differenct characteristics depending on the material in contact with the spandrels (ballast or backfill).
+* `12` and `13` are intuitively coplanar, the only reason for their distinct tagging is that in this case cracks will be further transformed into interface elements (through another utility program not included here), and these interfaces will have different characteristics depending on the material in contact with the spandrels (ballast or backfill).
 * `14` to `18` are also coplanar (using the term more loosely) in the sense that all these tags represent a single (sinuously curved) crack surface where each node is duplicated just once.
 
 Apart from these remarks, this bridge mesh notionally replicates the same features as in the test examples: the sub-lists represent intersecting crack surfaces and these are assigned to partitions during processing, as shown below:
