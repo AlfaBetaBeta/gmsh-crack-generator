@@ -116,7 +116,7 @@ To this end, all surfaces in these contact regions are programmatically retrieve
 
 Additionally, and to leverage the benefits of parallel computing, the solid mesh is (arbitrarily) partitioned in 6. As mentioned in [test example 3](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-3), partitioning initially involves only the higher dimensional elements, in this case the hexahedrons and wedges:
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/solid-partition-labels.png" width=80% height=80%>
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/solid-partition-labels.png" width=75% height=75%>
 
 With all the above in mind, the cracking program can be run simply by executing:
 ```
@@ -129,6 +129,10 @@ Note the two sub-lists embedded in the second argument:
 Apart from these remarks, this bridge mesh notionally replicates the same features as in the test examples: the sub-lists represent intersecting crack surfaces and these are assigned to partitions during processing, as shown below:
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/cracking-interfaces.png" width=100% height=100%>
+
+Illustratively, partition 5 after cracking is shown in more detail below, whereby a local crack opening has been introduced on each surface sub-list for clarity:
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/cracked-partition2.png" width=75% height=75%>
 
 
 ## Caveats and shortcomings
