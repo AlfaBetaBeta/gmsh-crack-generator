@@ -114,11 +114,22 @@ To this end, all surfaces in these contact regions are programmatically retrieve
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-interface-physical-tags.png" width=100% height=100%>
 
-Additionally, and to leverage the benefits of parallel computing, the solid mesh is partitioned in 6. As mentioned in [test example 3](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-3), partitioning initially involves only the higher dimensional elements, in this case the hexahedrons and wedges:
+Additionally, and to leverage the benefits of parallel computing, the solid mesh is (arbitrarily) partitioned in 6. As mentioned in [test example 3](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-3), partitioning initially involves only the higher dimensional elements, in this case the hexahedrons and wedges:
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/solid-partition-labels.png" width=100% height=100%>
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/solid-partition-labels.png" width=80% height=80%>
 
-.
+With all the above in mind, the cracking program can be run simply by executing:
+```
+$ python crack.py bridge.msh \[\[12,13],\[14,15,16,17,18],19]
+```
+Note the two sub-lists embedded in the second argument:
+* `12` and `13` are intuitively coplanar, the only reason for their distinct tagging is that in this case cracks will be further transformed into interface elements (through another utility program not included here), and these interfaces will have differenct characteristics depending on the material in contact with the spandrels (ballast or backfill).
+* `14` to `18` are also coplanar (using the term more loosely) in the sense that all these tags represent a single (sinuously curved) crack surface where each node is duplicated just once.
+
+Apart from these remarks, this bridge mesh notionally replicates the same features as in the test examples: the sub-lists represent intersecting crack surfaces and these are assigned to partitions during processing, as shown below:
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/cracking-interfaces.png" width=100% height=100%>
+
 
 ## Caveats and shortcomings
 
