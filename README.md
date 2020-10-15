@@ -102,7 +102,7 @@ As expected, there are 21 additional nodes in the cracked mesh. Inspecting these
 
 ## Application example
 
-Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented here, comprising a three-span arch bridge. The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing their self-weight):
+Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented here, comprising a three-span arch bridge (details on how to generate this mesh can be found in [this repository](https://github.com/AlfaBetaBeta/gmsh-3D-arch-bridge#generation-of-a-macroscale-multi-span-bridge-fe-mesh)). The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing their self-weight):
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/bridge/bridge-materials.png" width=100% height=100%>
 
