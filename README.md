@@ -82,7 +82,7 @@ As can be seen below (where some nodes have been removed for clarity), the surfa
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test3/test3-post-crack.png" width=100% height=100%>
 
-**\*** *The gmsh plugin* `SimplePartition` *does seem to assign partition tags to surfaces, as opposed to resorting to* `Modules/Mesh/Partition` *in the GUI. If the plugin were used to create the partitions, execution of* `crack.py` *would not fail but it would produce an inconsistent* `.msh` *file. This case is yet to be addressed and an upgrade of the script will be released in due course.*
+**\*** *The gmsh plugin* `SimplePartition` *does seem to assign partition tags to surfaces, as opposed to resorting to* `Modules/Mesh/Partition` *in the GUI. If `SimplePartition` were used to create the partitions, execution of* `crack.py` *would not fail but it would produce an inconsistent* `.msh` *file. This case is yet to be addressed and an upgrade of the script will be released in due course.*
 
 
 ## Test example 4
