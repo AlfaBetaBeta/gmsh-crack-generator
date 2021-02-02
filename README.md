@@ -5,7 +5,7 @@ This is a procedural version of a python program to create cracks inside a solid
 The `.msh` file containing the (uncracked) solid mesh is the main input argument for the python script `crack.py`, which will return an updated `.msh` file embedding the cracks upon execution. The main features of the program are showcased in the sections below:
 
 * [Introduction](https://github.com/AlfaBetaBeta/gmsh-crack-generator#introduction)
-* [Test example 1: execution syntax and program output](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-1)
+* [Test example 1: execution syntax and program output](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-1-execution-syntax-and-program-output)
 * [Test example 2: multi-tag crack planes](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-2)
 * [Test example 3: partitioning](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-3)
 * [Test example 4: intersecting of different crack planes](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-4)
@@ -57,7 +57,7 @@ This will result in a new `.msh` file stored in the working directory, retaining
 As expected, the cracked mesh comprises 8 additional nodes (`52`-`59`), which requires updating the nodal definition of two hexahedrons, as highlighted above. As ever, the crack has been artificially widened for clarity, as will be the case in all remaining test examples.
 
 
-## Test example 2
+## Test example 2: multi-tag crack planes
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test2/test2-pre-crack.png" width=100% height=100%>
 
@@ -70,7 +70,7 @@ $ python crack.py test2.msh \[\[3,4],5,6]
 Despite involving two distinct tags, the larger (left) crack plane correctly embeds 13 new nodes.
 
 
-## Test example 3
+## Test example 3: partitioning
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test3/test3-pre-crack.png" width=100% height=100%>
 
@@ -85,7 +85,7 @@ As can be seen below (where some nodes have been removed for clarity), the surfa
 **\*** *The gmsh plugin* `SimplePartition` *does seem to assign partition tags to surfaces, as opposed to resorting to* `Modules/Mesh/Partition` *in the GUI. If `SimplePartition` were used to create the partitions, execution of* `crack.py` *would not fail but it would produce an inconsistent* `.msh` *file. This case is yet to be addressed and an upgrade of the script will be released in due course.*
 
 
-## Test example 4
+## Test example 4: intersecting of different crack planes
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/test4-pre-crack.png" width=100% height=100%>
 
@@ -100,7 +100,7 @@ As expected, there are 21 additional nodes in the cracked mesh. Inspecting these
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test4/post-crack-with-nodes-transparent.png" width=70% height=70%> 
 
 
-## Application example
+## Application example: multi-span arch bridge
 
 Finally, and in order to showcase all previous features in a single mesh, a more realistic example is presented here, comprising a three-span arch bridge (details on how to generate this mesh can be found in [this repository](https://github.com/AlfaBetaBeta/gmsh-3D-arch-bridge#generation-of-a-macroscale-multi-span-bridge-fe-mesh)). The solid elements are either hexahedrons or wedges, and four main distinct materials are considered, as shown below (although *masonry* and *backing* are encoded with the same colour because they share the same physical tag `20` representing their self-weight):
 
