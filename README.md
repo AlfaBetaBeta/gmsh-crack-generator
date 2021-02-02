@@ -38,7 +38,7 @@ In principle, the process of duplicating the tagged surface follows a simple geo
 The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is virtually open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are indeed in place to accommodate this.
 
 
-## Test example 1
+## Test example 1: execution syntax and program output
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-pre-crack.png" width=100% height=100%>
 
