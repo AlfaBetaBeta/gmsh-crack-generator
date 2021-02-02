@@ -6,10 +6,10 @@ The `.msh` file containing the (uncracked) solid mesh is the main input argument
 
 * [Introduction](https://github.com/AlfaBetaBeta/gmsh-crack-generator#introduction)
 * [Test example 1: execution syntax and program output](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-1-execution-syntax-and-program-output)
-* [Test example 2: multi-tag crack planes](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-2)
-* [Test example 3: partitioning](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-3)
-* [Test example 4: intersecting of different crack planes](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-4)
-* [Application example: multi-span arch bridge](https://github.com/AlfaBetaBeta/gmsh-crack-generator#application-example)
+* [Test example 2: multi-tag crack planes](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-2-multi-tag-crack-planes)
+* [Test example 3: partitioning](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-3-partitioning)
+* [Test example 4: intersecting of different crack planes](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-4-intersecting-of-different-crack-planes)
+* [Application example: multi-span arch bridge](https://github.com/AlfaBetaBeta/gmsh-crack-generator#application-example-multi-span-arch-bridge)
 * [Caveats and shortcomings](https://github.com/AlfaBetaBeta/gmsh-crack-generator#caveats-and-shortcomings)
 
 
