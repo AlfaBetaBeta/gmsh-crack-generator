@@ -2,13 +2,14 @@ import sys
 import operator
 import pandas as pd
 import numpy as np
-
 import collections.abc
 
 
 def mesh2df(fname):
     """
-    Function reads through a .msh file and returns three pandas.DataFrame objects
+    Read through a .msh file to create relevant objects, mainly pandas DataFrames.
+    
+    Returns:
     
     df_phe = DataFrame with physical entities
                        dimension     name
@@ -16,22 +17,27 @@ def mesh2df(fname):
                 .       .             .
                 .       .             .
                 .       .             .
-    --------------------------------------------------------------------------------         
+             
     df_nod = DataFrame with nodes
                        coords
              node_ID   [...]
                 .        .
                 .        .
                 .        .
-    --------------------------------------------------------------------------------        
+            
     df_elm = DataFrame with elements
                        nodes   tags    type
              elm_ID    [...]   [...]   ...
                .         .       .      .
                .         .       .      .
                .         .       .      .
-    NOTE: The first element of tags is already the physical tag, not the total number of tags (as in gmsh), as this can be readily obtained via len(tags).
+               
+    mesh_format = List with msh format info
+    
+    NOTE: The first element of tags is already the physical tag, not the total number of tags (as in gmsh),
+          as this can be readily obtained via len(tags).
     NOTE: If len(tags)>2 in a solid element, the mesh has been partitioned!
+    NOTE: The msh file has to be in gmsh legacy format v2.* 
 
     Credit to:
     https://github.com/tjolsen/Mesh_Utilities/blob/master/gmsh_crack/gmsh_crack.py
@@ -48,124 +54,105 @@ def mesh2df(fname):
     phyent_ID = []
     phyent_name = []
     phyent_dim = []
+    
+    parse_dict = {"$MeshFormat": 0,
+                  "$PhysicalNames": 1,
+                  "$Nodes": 2,
+                  "$Elements": 3}
+    
+    with open(file_name) as f:
+        for line in f:
+            line = line.strip()
+            if line in parse_dict:
+                parsing_section = parse_dict[line]
+                
+            elif line.startswith("$End"): continue
 
-    nnodes = -1
-    nelements = -1
-    nphyents = -1
+            elif parsing_section == 0:
+                mesh_format = line.split()
 
-    PARSING_PHYSENTS = 0
-    PARSING_NODES = 1
-    PARSING_ELEMENTS = 2
-    ACTION_UNSET = 3
+            elif parsing_section == 1:
+                if len(line.split()) == 1: continue
+                tmp = line.split()
+                phyent_dim.append(int(tmp[0]))
+                phyent_ID.append(int(tmp[1]))
+                phyent_name.append(tmp[2])
 
-    # Set current action in file
-    ACTION = ACTION_UNSET
+            elif parsing_section == 2:
+                if len(line.split()) == 1: continue
+                tmp = line.split()
+                node_ID.append(int(tmp[0]))
+                node_coords.append([float(t) for t in tmp[1:]])
 
-    # Open file
-    f = open(fname, "r")
-    contents = f.read()
-    f.close()
+            elif parsing_section == 3:
+                if len(line.split()) == 1: continue
+                tmp = line.split()
+                elem_ID.append(int(tmp[0]))
+                elem_type.append(int(tmp[1]))
+                elem_tags.append([int(t) for t in tmp[3 : 3 + int(tmp[2])]])
+                elem_nodes.append([int(t) for t in tmp[3 + int(tmp[2]) :]])
 
-    lines = contents.split("\n")
-    for line in lines:
-        if ACTION == ACTION_UNSET:
-            if line == "$PhysicalNames":
-                ACTION = PARSING_PHYSENTS
-            elif line == "$Nodes":
-                ACTION = PARSING_NODES
-            elif line == "$Elements":
-                ACTION = PARSING_ELEMENTS
-            continue
-        elif ACTION == PARSING_PHYSENTS:
-            if line == "$EndPhysicalNames":
-                ACTION = ACTION_UNSET
-                continue
-            if nphyents == -1:
-                nphyents = int(line)
-                continue
-            tmp = line.split()
-            phyent_dim.append(int(tmp[0]))
-            phyent_ID.append(int(tmp[1]))
-            phyent_name.append(tmp[2])
-            phyent_dict = {"name": phyent_name, "dimension": phyent_dim}
-        elif ACTION == PARSING_NODES:
-            if line == "$EndNodes":
-                ACTION = ACTION_UNSET
-                continue
-            if nnodes == -1:
-                nnodes = int(line)
-                continue
-            tmp = line.split()
-            node_ID.append(int(tmp[0]))
-            node_coords.append([float(t) for t in tmp[1:]])
-            node_dict = {"coords": node_coords}
-        elif ACTION == PARSING_ELEMENTS:
-            if line == "$EndElements":
-                ACTION = ACTION_UNSET
-                continue
-            if nelements == -1:
-                nelements = int(line)
-                continue
-            tmp = line.split()
-            elem_ID.append(int(tmp[0]))
-            elem_type.append(int(tmp[1]))
-            elem_tags.append([int(t) for t in tmp[3 : 3 + int(tmp[2])]])
-            elem_nodes.append([int(t) for t in tmp[3 + int(tmp[2]) :]])
-            elem_dict = {"type": elem_type, "tags": elem_tags, "nodes": elem_nodes}
+    df_phe = pd.DataFrame({"name": phyent_name, "dimension": phyent_dim},
+                          columns=["dimension", "name"],
+                          index=phyent_ID)
 
-    # Create DataFrames
-    df_phe = pd.DataFrame(phyent_dict, columns=["dimension", "name"], index=phyent_ID)
-    df_nod = pd.DataFrame(node_dict, index=node_ID)
-    df_elm = pd.DataFrame(elem_dict, columns=["nodes", "tags", "type"], index=elem_ID)
+    df_nod = pd.DataFrame({"coords": node_coords},
+                          index=node_ID)
 
-    return (df_phe, df_nod, df_elm)
+    df_elm = pd.DataFrame({"type": elem_type, "tags": elem_tags, "nodes": elem_nodes},
+                          columns=["nodes", "tags", "type"],
+                          index=elem_ID)
+
+    
+    return (df_phe, df_nod, df_elm, mesh_format)
 
 
 def flatten(L):
     """
     Flatten a list of items/sublists/nested sublists into a one-level list.
-    Example: [[1,2,3],4,[5,[6,7]]] is flattened to [1,2,3,4,5,6,7]
     
-    If the input argument is already a one-level list, the generated object will coincide, i.e. the 'flattened' list will be equal to the original list.
+    Example: 
+    >>> flatten([[1,2,3],4,[5,[6,7]]]) 
+    [1,2,3,4,5,6,7]
     """
     for el in L:
-        # Recursion if item <el> is itself an iterable (that is NOT a string)
+        # Recursion if item `el` is itself an iterable (that is NOT a string)
         if isinstance(el, collections.abc.Iterable) and not isinstance(
             el, (str, bytes)
         ):
             yield from flatten(el)
-        # Else just yield item <el>
+        # Else just yield item `el`
         else:
             yield el
+            
 
-
-def preproc_df(df_elm, crack_ids):
+def check_tag_uniqueness(df_elm, L_cr, dict_crack2crack):
     """
-    df_elm    = DataFrame with all elements in the mesh
-    crack_ids = List with crack physical tags, with some pairs being possibly coupled if they belong to the same crack plane (e.g. [1,[2,3],4])
-                
-    df_elm may be edited in here if an elementary tag is found to be repeated for different cracks
-
+    df_elm            = DataFrame with all elements in the mesh
+    L_cr              = Flattened list with all crack IDs (surface physical tags)
+    dict_crack2crack  = Dictionary linking IDs of identical surface elements (i.e. comprising the same nodes)
+                        having different physical tags
+    
     Returns:
-    dic_s2s = Dictionary with IDs of the same crack surface elements under different physical tags
+    df_elm = DataFrame of elements with a unique elementary tag for each distinct surface element
+    
+    NOTE: Look into necessary adjustments if dict_crack2crack.values() are tuples of size 2+
     """
-    L_cr = list(flatten(crack_ids))
 
-    # Mask to subset rows with ALL elements but the cracks/ONLY the cracks
+    # Mask to subset rows with:
+    # * ALL elements but the cracks
     cond_notcr = [L[0] not in L_cr for L in df_elm["tags"]]
-    cond_cr = [L[0] in L_cr[:-1] for L in df_elm["tags"]]
     df_notcr = df_elm[cond_notcr]
+    # * ONLY the cracks
+    cond_cr = [L[0] in L_cr[:-1] for L in df_elm["tags"]]
     df_cr = df_elm[cond_cr]  # Does NOT include the common tag for s2in
 
     # If all crack elementary tags are already different, there is no need to proceed further
     if len(set([L[1] for L in df_cr["tags"]])) == len(df_cr):
-        return
+        return df_elm
 
     # Set of unique values from the elementary tags of ALL elements but the cracks
     set_eltags = set([L[1] for L in df_notcr["tags"]])
-
-    # Dict relating IDs of the same surface element under different physical tags
-    dic_s2s = intercrack(df_elm, L_cr)
 
     # Loop over DataFrame and amend elementary tag where appropriate
     for it in df_cr.itertuples():
@@ -173,598 +160,644 @@ def preproc_df(df_elm, crack_ids):
             set_eltags.add(it[2][1])
             continue
         else:
+            associated_crack, = dict_crack2crack[it[0]]
             new_eltag = max(set_eltags) + 1
             df_elm.at[it[0], "tags"] = [it[2][0], new_eltag]
-            df_elm.at[dic_s2s[it[0]], "tags"] = [L_cr[-1], new_eltag]
+            df_elm.at[associated_crack, "tags"] = [L_cr[-1], new_eltag]
             set_eltags.add(new_eltag)
 
-    return dic_s2s
+    return df_elm
 
 
-def intercrack(df_elm, L_cr):
+def get_IDs_same_elmt(df_elm, L_cr, elmt_type="solid"):
     """
-    df_elm = DataFrame with all elements in the mesh
-    L_cr   = List (flattened!) with all crack surface element IDs
+    df_elm    = DataFrame with all elements in the mesh
+    L_cr      = Flattened list with all crack IDs (surface physical tags)
+    elmt_type = "solid" or "surface"
     
     Returns:
-    dic_s2s = Dictionary linking IDs of identical surface elements of different physical tags
+    dict_elmt2elmt = Dictionary linking IDs of identical solid or surface elements (i.e. comprising the same nodes)
+                     having different physical tags
+    
+    Example:
+    >>> get_IDs_same_elmt(df_elm)
+    {9: (10,),
+     17: (18,),
+     11: (12,),
+     13: (14,),
+     15: (16,)}
+    
+    NOTE: Only the following gmsh solid elements are explicitly considered here:
+            * 17 = 20-noded hexahedron
+            * 18 = 15-noded wedge
     """
-    # Mask to subset only surface elements representing cracks
-    df_cracksurf = df_elm[[L[0] in L_cr for L in df_elm["tags"]]]
-    # Transform df_cracksurf into a DataFrame of strings (to facilitate vectorisation)
-    df_cracksurf = df_cracksurf.applymap(str)
+    solid_types = [17, 18]
+    if elmt_type == "solid":
+        df = df_elm[df_elm["type"].isin(solid_types)]
+    elif elmt_type == "surface":
+        df = df_elm[[L[0] in L_cr for L in df_elm["tags"]]]
+    
+    # Transform df_solid into a DataFrame of strings (to facilitate vectorisation)
+    df = df.applymap(str)
 
     # Group the DataFrame by nodes (i.e. strings embedding lists)
-    df_cracksurf_gr = df_cracksurf.groupby("nodes")
-    # Exhaust the grouping generator and store into a dictionary
-    df_cracksurf_gr = dict(list(df_cracksurf_gr))
+    df = dict(list(df.groupby("nodes")))
 
     # Create ouput dictionary from the indices of the groups
-    dic_s2s = []
-    for subdf in df_cracksurf_gr.values():
-        dic_s2s.append(tuple(subdf.index.values))
-    dic_s2s = dict(dic_s2s)
+    dict_elmt2elmt = {subdf.index.values[0]: tuple(subdf.index.values[1:])\
+                      for subdf in df.values()\
+                      if len(subdf) > 1}
 
-    return dic_s2s
+    return dict_elmt2elmt
 
 
-def elem_ctrd(df_nod, sr_elm, nodmap):
+def get_adjacent_surface_ID(elm_ID, normal_dict):
     """
-    df_nod  = DataFrame of all nodes in the mesh
-    sr_elm  = Series of a particular element (= df_elm.loc[<given ID>])
-    nodmap  = Dictionary linking old with duplicated nodes (duplication at upper level) in case df_nod makes a loc call to a duplicated node
-              before that DataFrame could be updated
-    
-    Returns a list with the average coordinates over all nodes of the element
-    """
-    crds = [0, 0, 0]
-    for n in sr_elm.loc["nodes"]:
-        try:
-            nl = df_nod.loc[n].tolist()[0]
-        except KeyError:
-            nn = list(nodmap.keys())[list(nodmap.values()).index(n)]
-            nl = df_nod.loc[nn].tolist()[0]
-
-        crds = [sum(x) for x in zip(crds, nl)]
-    crds = [x / len(sr_elm.loc["nodes"]) for x in crds]
-
-    return crds
-
-
-def ext_nrm(df_nod, sr_elm):
-    """
-    df_nod = DataFrame of all nodes in the mesh
-    sr_elm = Series of a particular SURFACE element (= df_elm.loc[<given ID>])
+    elm_ID = Surface element ID (NOT included in normal_dict)
+    normal_dict = Dictionary with
+                   surface_elm_ID : [outer unit normal components]
+                  as key/value pairs
     
     Returns:
-    nrm = list with the components of the unit normal to the surface
-    NOTE: the orientation is given by the ordering of the nodes
+    adj_ID = ID of one surface element in normal_dict sharing at least one node with the given element
+    
+    NOTE: If normal_dict contains no neighbouring surface elements, then 0 is returned as ID
     """
-    n3 = sr_elm.loc["nodes"][:3]
+    adj_ID = 0
+    for k in normal_dict.keys():
+        if bool(
+            set.intersection(
+                set(df_elm.loc[k, "nodes"]), set(df_elm.loc[elm_ID, "nodes"])
+            )
+        ):
+            adj_ID = k
+            break
+
+    return adj_ID
+
+
+def get_unit_normal(surface_elmt):
+    """
+    surface_elmt = Series of a particular surface element (= df_elm.loc[`given ID`])
+    
+    Returns:
+    nrm = list with the [x,y,z] components of the unit normal to the surface
+    
+    NOTE: the orientation is given by the ordering of the surface element nodes
+    """
+    n3 = surface_elmt.loc["nodes"][:3]
     vec1 = [
         i - j for i, j in zip(df_nod.loc[n3[1], "coords"], df_nod.loc[n3[0], "coords"])
     ]
     vec2 = [
         i - j for i, j in zip(df_nod.loc[n3[2], "coords"], df_nod.loc[n3[1], "coords"])
     ]
-    nrm = [
+    normal = [
         vec1[1] * vec2[2] - vec1[2] * vec2[1],
         vec1[2] * vec2[0] - vec1[0] * vec2[2],
         vec1[0] * vec2[1] - vec1[1] * vec2[0],
     ]
 
-    # Normalise the vector
-    s = (sum([i * j for i, j in zip(nrm, nrm)])) ** (0.5)
-    nrm = [i / s for i in nrm]
+    # Scale the normal to a unit vector
+    s = (sum([i**2 for i in normal])) ** (0.5)
+    normal = [i / s for i in normal]
 
-    return nrm
+    return normal
 
 
-def solid2solid(df_elm):
+def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reordering):
     """
-    df_elm = DataFrame with all elements in the mesh
+    adj_srf_ID      = ID of a surface element adjacent to the one given by `elmt_tuple`
+    normal_dict     = Dictionary with
+                       surface_elm_ID : [outer unit normal components]
+                      as key/value pairs
+    elmt_tuple      = Surface element being processed
+    node_reordering = List with the adjusted node order for a surface element to reverse its unit normal
+    
+    NOTE: `node_reordering` only valid for quads, needs generalisation to include triangles as well
+    NOTE: Adjustments needed for the case that dict_crack2crack[..] returns a tuple of size 2+ !!!!
+    """
+    # An adjacent previously processed surface is available
+    if adj_srf_ID != 0:
+        
+        projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], normal_dict[adj_srf_ID])]))
+        normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
+        
+        if projection_sign < 0:
+            # Update crack node ordering if normal needs reversing for consistent top/bottom with adjacent surface elements
+            df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
+            n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
+            associated_surface, = dict_crack2crack[elmt_tuple[0]]
+            df_elm.at[associated_surface, "nodes"] = [n_all[x] for x in node_reordering]
+            
+        if projection_sign == 0:
+            print(
+                "Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID)
+            )
+            print(
+                "Unable to orientate surface {}. Consider changing the surface processing order".format(elmt_tuple[0])
+            )
+            sys.exit(1)
+            
+    # There are previously processed surfaces but none is adjacent
+    elif adj_srf_ID == 0 and len(normal_dict) >= 1:
+        
+        avg_normal = [sum(x) / len(normal_dict) for x in zip(*normal_dict.values())]
+        projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], avg_normal)]))
+        normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
+        
+        if projection_sign < 0:
+            # Update crack node ordering if normal needs reversing for consistent top/bottom with adjacent surface elements
+            df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
+            n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
+            associated_surface, = dict_crack2crack[elmt_tuple[0]]
+            df_elm.at[associated_surface, "nodes"] = [n_all[x] for x in node_reordering]
+            
+        if projection_sign == 0:
+            print(
+                "Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID)
+            )
+            print(
+                "Unable to orientate surface {}. Consider changing the surface processing order".format(elmt_tuple[0])
+            )
+            sys.exit(1)
+
+            
+def get_elmt_centroid(solid_elmt, nodemap):
+    """
+    solid_elmt = Series of a particular solid element
+    nodemap    = Dictionary linking original with corresponding duplicated nodes across the crack lip,
+                 in case `df_nod` makes a loc call to a duplicated node before that DataFrame could be updated
     
     Returns:
-    dic_s2s = Dictionary linking IDs of identical SOLID elements of different physical tags
+    coords = List with the average coordinates over all nodes of the element
     """
-    # Mask to subset only solid elements (17=bk20, 18=wd15)
-    df_solid = df_elm[(df_elm["type"] == 17) | (df_elm["type"] == 18)]
-    # Transform df_solid into a DataFrame of strings (to facilitate vectorisation)
-    df_solid = df_solid.applymap(str)
+    coords = [0, 0, 0]
+    for n in solid_elmt.loc["nodes"]:
+        try:
+            node_coords = df_nod.loc[n].tolist()[0]
+        except KeyError:
+            old_node = [k for k,v in nodemap.items() if v == n][0]
+            node_coords = df_nod.loc[old_node].tolist()[0]
 
-    # Group the DataFrame by nodes (i.e. strings embedding lists)
-    df_solid_gr = df_solid.groupby("nodes")
-    # Exhaust the grouping generator and store into a dictionary
-    df_solid_gr = dict(list(df_solid_gr))
+        coords = [sum(x) for x in zip(coords, node_coords)]
+        
+    n_elmt_nodes = len(solid_elmt.loc["nodes"])
+    coords = [x / n_elmt_nodes for x in coords]
 
-    # Create ouput dictionary from the indices of the groups
-    dic_s2s = []
-    for subdf in df_solid_gr.values():
-        dic_s2s.append(tuple(subdf.index.values))
-    dic_s2s = dict(dic_s2s)
-
-    return dic_s2s
+    return coords
 
 
-def srf_split(df_nod, df_elm, elm_ID, elm_nrm, dic_s2s, nodmap):
+def get_top_bottom_elmts(elm_ID, elm_normal, nodemap):
     """
-    df_nod  = DataFrame with all nodes in the mesh
-    df_elm  = DataFrame with all elements in the mesh
-    elm_ID  = SURFACE element ID
-    elm_nrm = SURFACE normal (list with vector components)
-    dic_s2s = Dictionary linking identical solid element IDs of different physical tags
-    nodmap  = Dictionary linking old with duplicated nodes, to be passed on to elem_ctrd in case df_nod makes a loc call to a duplicated node
-              before that DataFrame could be updated
+    elm_ID     = Surface element ID
+    elm_normal = Surface normal [x,y,z]
+    nodemap    = Dictionary linking original with duplicated nodes, to be passed on to `get_elmt_centroid()`
+                 in case `df_nod` makes a loc call to a duplicated node before that DataFrame could be updated
     
     Returns:
-    top_bot = list with the 2 solid element IDs (belonging to dic_s2s.keys()) attached (by at least 3 corner nodes) to the given surface element,
-              always in the order [TOP elem_ID, BOTTOM elem_ID], where top and bottom are given by the orientation of the surface normal
-              (it points bottom to top). Should one of the 2 elements be missing, then it is replaced by 0.
+    [top,bottom] = List with the 2 solid element IDs (belonging to dict_solid2solid.keys()) attached
+                   to the given surface element, always in the order (TOP elem_ID, BOTTOM elem_ID),
+                   where `top` and `bottom` are given by the orientation of the surface normal
+                   (it points bottom to top). Should one of the 2 solid elements be missing, then its ID
+                   defaults to 0.
     """
-    # Extract Series of the element specified by elm_ID
-    sr_elm = df_elm.loc[elm_ID]
-    # List with the node_IDs of all nodes of the given surface element
-    n3 = sr_elm.loc["nodes"][:3]
+    surface_elmt = df_elm.loc[elm_ID]
+    # List with the node IDs of the first three nodes of the given surface element
+    n3 = surface_elmt.loc["nodes"][:3]
     # Mask df_elm by the elements containing the first node of n3
-    df_elm_msk = df_elm[[n3[0] in set(L) for L in df_elm["nodes"].values.tolist()]]
-    # Further mask by constraining the solid element tag to belong to dic_s2s.keys()
-    df_elm_msk = df_elm_msk[[i in dic_s2s.keys() for i in df_elm_msk.index]]
+    df = df_elm[[n3[0] in set(L) for L in df_elm["nodes"]]]# df_elm["nodes"].values.tolist()
+    # Further mask by constraining the solid element ID to belong to dict_solid2solid.keys()
+    df = df[[i in dict_solid2solid.keys() for i in df.index]]
 
-    top_bot = set(df_elm_msk.index)
-    # Update with the second and third nodes of n3
+    top_bottom = set(df.index)
+    # Update the search with the second and third nodes of n3
     for n in range(2):
-        df_elm_msk = df_elm[
-            [n3[n + 1] in set(L) for L in df_elm["nodes"].values.tolist()]
-        ]
-        df_elm_msk = df_elm_msk[[i in dic_s2s.keys() for i in df_elm_msk.index]]
+        df = df[[n3[n + 1] in set(L) for L in df["nodes"]]]
+        top_bottom.intersection_update(df.index)
+        
+    top_bottom = list(top_bottom)
 
-        top_bot.intersection_update(df_elm_msk.index)
-
-    if len(top_bot) == 0:
+    if len(top_bottom) == 0:
         print(
-            "Error: srf_split() could not find solid elements attached to surface element {0}".format(
+            "Error: get_top_bottom_elmts() could not find solid elements attached to surface element {0}".format(
                 elm_ID
             )
         )
         sys.exit(1)
 
-    if len(top_bot) == 1:
+    if len(top_bottom) == 1:
         vec = [
             i - j
             for i, j in zip(
-                elem_ctrd(df_nod, df_elm.loc[list(top_bot)[0]], nodmap),
+                get_elmt_centroid(df_elm.loc[top_bottom[0]], nodemap),
                 df_nod.loc[n3[0], "coords"],
             )
         ]
-        # dp = sum([i*j for i,j in zip(vec,ext_nrm(df_nod,sr_elm))])
-        dp = sum([i * j for i, j in zip(vec, elm_nrm)])
-        if dp > 0:
-            top_bot = list(top_bot) + [0]
-        if dp < 0:
-            top_bot = (list(top_bot) + [0])[::-1]
+        dot_product = sum([i * j for i, j in zip(vec, elm_normal)])
+        if dot_product > 0:
+            top_bottom = top_bottom + [0]
+        if dot_product < 0:
+            top_bottom = (top_bottom + [0])[::-1]
     else:
         vec = [
             i - j
             for i, j in zip(
-                elem_ctrd(df_nod, df_elm.loc[list(top_bot)[0]], nodmap),
-                elem_ctrd(df_nod, df_elm.loc[list(top_bot)[1]], nodmap),
+                get_elmt_centroid(df_elm.loc[top_bottom[0]], nodemap),
+                get_elmt_centroid(df_elm.loc[top_bottom[1]], nodemap),
             )
         ]
-        # dp = sum([i*j for i,j in zip(vec,ext_nrm(df_nod,sr_elm))])
-        dp = sum([i * j for i, j in zip(vec, elm_nrm)])
-        if dp > 0:
-            top_bot = list(top_bot)
-        if dp < 0:
-            top_bot = list(top_bot)[::-1]
-
-    if type(top_bot) == set:
-        print("Error: srf_split() could not convert top_bot to list")
-        print(
-            "top_bot =",
-            top_bot,
-            "during processing of surface element {0}".format(elm_ID),
-        )
-        if dp == 0:
+        dot_product = sum([i * j for i, j in zip(vec, elm_normal)])
+        if dot_product < 0:
+            top_bottom = top_bottom[::-1]
+        elif dot_product == 0:
             print(
-                "dp = 0, which indicates that a solid element has been counted twice in top_bot"
+                "dot_product = 0 when processing surface element {}, which indicates that the same \
+                solid element has been identified as top/bottom".format(elm_ID)
             )
-            print("(possibly with different physical tags, check dic_s2s)")
+            print("(possibly with different physical tags, check dict_solid2solid)")
+            sys.exit(1)
 
-    return top_bot
+    return top_bottom
 
 
-def srf_neigh(df_nod, df_elm, elm_ID, elm_nrm, dic_s2s, nodmap):
+def get_attached_surfaces(elm_ID):
     """
-    df_nod  = DataFrame with all nodes in the mesh
-    df_elm  = DataFrame with all elements in the mesh
-    elm_ID  = SURFACE element ID
-    elm_nrm = SURFACE normal (list with vector components)
-    dic_s2s = Dictionary linking identical solid element IDs of different physical tags
-    nodmap  = Dictionary linking old with duplicated nodes, to be passed on to elem_ctrd in case df_nod makes a loc call to a duplicated node
-              before that DataFrame could be updated
+    elm_ID = Solid element ID
     
     Returns:
-    neigh = list with IDs of neighbouring solid elements in contact with the given surface element but NOT attached to it (i.e. they are NOT
-            in the output of srf_split(..,elm_ID,..)), provided these neighbouring elements are on the 'top' region of the surface element.
+    attchd_surfs = List with IDs of all surface elements attached to the given solid element
     
-    NOTE: neighbouring solid elements in neigh do share nodes with the given surface element, but not an entire face (otherwise they would be attached)
+    NOTE: A surface is considered 'attached' if it coincides with a full face of the solid
+    NOTE: Only the following gmsh surface elements are explicitly considered here:
+            * 16 = 8-noded quad
+            * 9  = 6-noded triangle
     """
-    # Extract Series of the surface element specified by elm_ID
-    sr_elm = df_elm.loc[elm_ID]
-    # Set with the node_IDs of ALL nodes of the given surface element
-    nall = set(sr_elm.loc["nodes"])
-    # Mask df_elm by the elements containing ANY node in nall
-    df_elm_msk = df_elm[
-        [bool(set.intersection(nall, set(L))) for L in df_elm["nodes"].values.tolist()]
-    ]
-    # Further mask by constraining the element tag to belong to dic_s2s.keys() (solid elements)
-    df_elm_msk = df_elm_msk[[i in dic_s2s.keys() for i in df_elm_msk.index]]
-
-    neigh = list()
-
-    for nel in df_elm_msk.index:
-        vec = [
-            i - j
-            for i, j in zip(
-                elem_ctrd(df_nod, df_elm.loc[nel], nodmap),
-                elem_ctrd(df_nod, sr_elm, nodmap),
-            )
-        ]
-        # dp = sum([i*j for i,j in zip(vec,ext_nrm(df_nod,sr_elm))])
-        dp = sum([i * j for i, j in zip(vec, elm_nrm)])
-        if dp > 0:
-            neigh.append(nel)
-
-    return neigh
-
-
-def surf2vol(df_elm, elm_ID):
-    """
-    df_elm = DataFrame with all elements in the mesh
-    elm_ID = SOLID element ID
-    
-    Returns:
-    s_val = list with IDs of all SURFACE elements attached to the given solid element
-    NOTE: a surface is considered attached if it coincides with a full face of the solid
-    """
-    # In gmsh, type16 = 8-noded quad, type9 = 6-noded triangle
-    # dict.values() = the consistent number of nodes in common with a solid
-    s2inodes = {16: 8, 9: 6}
-
-    s_val = []
+    nodes_per_face = {16: 8, 9: 6}
+    attchd_surfs = []
 
     if elm_ID not in set(df_elm.index):
-        print("There is no solid element with ID = {0}".format(elm_ID))
+        print("There is no solid element with ID = {} in get_attached_surfaces()".format(elm_ID))
         print("Most likely caused because the active crack has no top element")
-        return s_val
+        return attchd_surfs
 
-    for i in df_elm[(df_elm["type"] == 16) | (df_elm["type"] == 9)].index:
-        n = set(df_elm.loc[elm_ID, "nodes"])
-        n.intersection_update(df_elm.loc[i, "nodes"])
-        if len(n) == s2inodes[df_elm.loc[i, "type"]]:
-            s_val.append(i)
+    for i in df_elm[df_elm["type"].isin(nodes_per_face.keys())].index:
+        solid_nodes = set(df_elm.loc[elm_ID, "nodes"])
+        solid_nodes.intersection_update(df_elm.loc[i, "nodes"])
+        if len(solid_nodes) == nodes_per_face[df_elm.loc[i, "type"]]:
+            attchd_surfs.append(i)
 
-    return s_val
+    return attchd_surfs
 
 
-def surf2surf(df_elm, elm_ID, nrm_dict):
+def get_active_surf_elmts(crack_ID):
     """
-    df_elm = DataFrame with all elements in the mesh
-    elm_ID = SURFACE element ID (NOT included in nrm_dict)
-    nrm_dict = Dictionary with {surface_elm_ID : [outer normal components]}
+    crack_ID = Physical tag(s) of surface (crack) element(s) being processed
     
     Returns:
-    s_adj = ID of one surface element in nrm_dict sharing at least one node with the
-            given element
-    NOTE: If nrm_dict contains no neighbouring surface elements, then 0 is returned as ID
+    df = DataFrame with active surface elements (active cracks, i.e. cracks undergoing processing)
+    op = Check operator (to check if a surface is an active crack), corresponding to the type of `crack_ID`
+    
+    NOTE: Bear in mind that `crack_ID` may be an int or a list of ints!
     """
-    s_adj = 0
-    for k in nrm_dict.keys():
-        if bool(
-            set.intersection(
-                set(df_elm.loc[k, "nodes"]), set(df_elm.loc[elm_ID, "nodes"])
-            )
-        ):
-            s_adj = k
-            break
-
-    return s_adj
-
-
-def part2surf(df_elm, srf_ID_top, srf_ID_bot, s_topbot):
-    """
-    df_elm     = DataFrame with all elements in the mesh
-    srf_ID_top = SURFACE element ID representing the interface 'top'
-    srf_ID_bot = SURFACE element ID representing the interface 'bottom'
-    s_topbot   = List with the [top,bottom] SOLID element IDs attached to the active crack in consideration (srf_ID_bot, as specified at upper level)
-                 
-    NOTE: It is assumed that surface elements becoming interfaces are never partitioned in gmsh alongside the solid elements, as gmsh only
-          seems to deal with the highest dimension when partitioning. Should this behaviour change, this function would have to be revised!
-    """
-    par0 = df_elm.loc[s_topbot[0], "tags"][3]
-    par1 = df_elm.loc[s_topbot[1], "tags"][3]
-    parts = set([par0, par1])
-
-    df_elm.loc[srf_ID_top, "tags"].extend([len(parts), par0])
-    df_elm.loc[srf_ID_bot, "tags"].extend([len(parts), par1])
-    if len(parts) > 1:
-        df_elm.loc[srf_ID_top, "tags"].append(-par1)
-        df_elm.loc[srf_ID_bot, "tags"].append(-par0)
-
-
-def make_crack(df_nod, df_elm, active_crack_ID, dic_s2s, dic_srf2srf, all_cracks_ID):
-    # DataFrame with active SURFACE elements == active cracks
-    # Bear in mind that active_crack_ID may be an int or a list of ints!
-    if type(active_crack_ID) == int:
-        df_crack_el = df_elm[[active_crack_ID in L[:1] for L in df_elm.tags]]
+    # 
+    if type(crack_ID) == int:
+        df = df_elm[[crack_ID in L[:1] for L in df_elm.tags]]
         op = operator.eq
-    elif type(active_crack_ID) == list:
-        df_crack_el = df_elm[
+    elif type(crack_ID) == list:
+        df = df_elm[
             [
-                bool(set.intersection(set(active_crack_ID), set(L[:1])))
+                bool(set.intersection(set(crack_ID), set(L[:1])))
                 for L in df_elm.tags
             ]
         ]
         op = operator.contains
-
-    # Make set of node IDs for nodes on ALL active cracks
-    crack_nodes = []
-    for Lnod in df_crack_el["nodes"].values.tolist():
-        crack_nodes.extend(Lnod)
-    crack_nodes = list(set(crack_nodes))
-
-    # Create list of new node IDs for nodes to be duplicated
-    new_nodes = []
-    for i in range(1, len(crack_nodes) + 1):
-        new_nodes.append(len(df_nod) + i)
-
-    node_mapping = dict(
-        [(crack_nodes[i], new_nodes[i]) for i in range(0, len(crack_nodes))]
-    )
-
-    # Initialise aux variables for orientation preprocessing
-    nrm_dict = dict()
-    s_prev = 0
-    reord = [0, 3, 2, 1, 7, 6, 5, 4]
-    # Set nodes in each solid element "on top" of a crack to the newly created nodes
-    # Loop over Surface (active crack) elements
-    for i in df_crack_el.itertuples():
-        # Aux preprocessing to ensure that neighbouring crack elements have the same
-        # 'top'/'bottom' consistently
-        if len(nrm_dict) > 0:
-            s_prev = surf2surf(df_elm, i[0], nrm_dict)
-        nrm_dict[i[0]] = ext_nrm(df_nod, df_elm.loc[i[0]])
-        if s_prev != 0:
-            sgn = np.sign(
-                sum([v1 * v2 for v1, v2 in zip(nrm_dict[i[0]], nrm_dict[s_prev])])
-            )
-            nrm_dict[i[0]] = list(map(lambda x: x * sgn, nrm_dict[i[0]]))
-            if sgn < 0:
-                # Update crack node ordering if normal needs reversing
-                df_elm.at[i[0], "nodes"] = [i[1][x] for x in reord]
-                n_all = df_elm.loc[dic_srf2srf[i[0]], "nodes"]
-                df_elm.at[dic_srf2srf[i[0]], "nodes"] = [n_all[x] for x in reord]
-            if sgn == 0:
-                print(
-                    "Surface {} is perpendicular to previous surfaces".format(i[0] + 1)
-                )
-                print(
-                    "Unable to orientate surface. Consider changing the surface ordering"
-                )
-                sys.exit(1)
-        elif s_prev == 0 and len(nrm_dict) > 1:
-            avg_nrm = [sum(x) / len(nrm_dict) for x in zip(*nrm_dict.values())]
-            sgn = np.sign(sum([v1 * v2 for v1, v2 in zip(nrm_dict[i[0]], avg_nrm)]))
-            nrm_dict[i[0]] = list(map(lambda x: x * sgn, nrm_dict[i[0]]))
-            if sgn < 0:
-                # Update crack node ordering if normal needs reversing
-                df_elm.at[i[0], "nodes"] = [i[1][x] for x in reord]
-                n_all = df_elm.loc[dic_srf2srf[i[0]], "nodes"]
-                df_elm.at[dic_srf2srf[i[0]], "nodes"] = [n_all[x] for x in reord]
-            if sgn == 0:
-                print(
-                    "Surface {} is perpendicular to previous surfaces".format(i[0] + 1)
-                )
-                print(
-                    "Unable to orientate surface. Consider changing the surface ordering"
-                )
-                sys.exit(1)
-        elif s_prev == 0 and len(nrm_dict) == 1:
-            avg_nrm = list(nrm_dict.values())[0]
-            sgn = np.sign(sum([v1 * v2 for v1, v2 in zip(nrm_dict[i[0]], avg_nrm)]))
-            nrm_dict[i[0]] = list(map(lambda x: x * sgn, nrm_dict[i[0]]))
-            if sgn < 0:
-                # Update crack node ordering if normal needs reversing
-                df_elm.at[i[0], "nodes"] = [i[1][x] for x in reord]
-                n_all = df_elm.loc[dic_srf2srf[i[0]], "nodes"]
-                df_elm.at[dic_srf2srf[i[0]], "nodes"] = [n_all[x] for x in reord]
-            if sgn == 0:
-                print(
-                    "Surface {} is perpendicular to previous surfaces".format(i[0] + 1)
-                )
-                print(
-                    "Unable to orientate surface. Consider changing the surface ordering"
-                )
-                sys.exit(1)
-
-        # List of solid elements [top,bottom] attached to crack i
-        s_topbot = srf_split(
-            df_nod, df_elm, i[0], nrm_dict[i[0]], dic_s2s, node_mapping
-        )
-        # List of surface elements attached to solid element on top of crack i
-        el_s = surf2vol(df_elm, s_topbot[0])
-        # Duplicate nodes on the face of the solid in contact with active crack i (on top)
-        if s_topbot[0] != 0:
-            for j in range(len(df_elm.loc[s_topbot[0], "nodes"])):
-                if df_elm.loc[s_topbot[0], "nodes"][j] in set(i[1]):
-                    df_elm.loc[s_topbot[0], "nodes"][j] = node_mapping[
-                        df_elm.loc[s_topbot[0], "nodes"][j]
-                    ]
-            # Duplicate nodes in contact with active crack i belonging to surfaces attached to the solid element s_topbot[0] that are NOT the active crack
-            for ii in el_s:
-                if not op(active_crack_ID, df_elm.loc[ii, "tags"][0]):
-                    for j in range(len(df_elm.loc[ii, "nodes"])):
-                        if df_elm.loc[ii, "nodes"][j] in set(i[1]):
-                            df_elm.loc[ii, "nodes"][j] = node_mapping[
-                                df_elm.loc[ii, "nodes"][j]
-                            ]
-                # Update surface partition tags if necessary
-                if (
-                    len(df_elm.loc[s_topbot[0], "tags"]) > 2
-                    and df_elm.loc[ii, "tags"][0] == all_cracks_ID
-                ):
-                    dnid = set([node_mapping[dn] for dn in df_elm.loc[i[0], "nodes"]])
-                    if dnid == set(df_elm.loc[ii, "nodes"]):
-                        part2surf(df_elm, ii, i[0], s_topbot)
-
-            # Duplicate nodes of neighbouring solid elements in contact with active crack i but NOT attached to the crack plane (i.e. NOT attached to any active crack)
-            s_neigh = srf_neigh(
-                df_nod, df_elm, i[0], nrm_dict[i[0]], dic_s2s, node_mapping
-            )
-            if not s_neigh:
-                continue
-            # Discard solid elements attached to other active cracks (outside of active crack i) before proceeding to duplicate nodes
-            for sn in s_neigh:
-                proceed = True
-                s_sn = surf2vol(df_elm, sn)
-                for s in s_sn:
-                    s_set = set(df_elm.loc[s, "nodes"])
-                    if set.intersection(s_set, set(crack_nodes)) == s_set:
-                        proceed = False
-                        break
-                if proceed:
-                    for j in range(len(df_elm.loc[sn, "nodes"])):
-                        if df_elm.loc[sn, "nodes"][j] in set(i[1]):
-                            df_elm.loc[sn, "nodes"][j] = node_mapping[
-                                df_elm.loc[sn, "nodes"][j]
-                            ]
-                    # Duplicate nodes on surfaces attached to solid element sn as well, if these share nodes with active crack i:
-                    for s in s_sn:
-                        for j in range(len(df_elm.loc[s, "nodes"])):
-                            if df_elm.loc[s, "nodes"][j] in set(i[1]):
-                                df_elm.loc[s, "nodes"][j] = node_mapping[
-                                    df_elm.loc[s, "nodes"][j]
-                                ]
-        else:
-            print("Active crack physical tag = {0}".format(i[2][0]))
-            print(
-                "Surface element {0} of type {1} is missing a solid element on top\n".format(
-                    i[0], i[3]
-                )
-            )
-
-    # Create a new surface element per active crack to superimpose over the old surface element
-    # Both the old and new surface elements constitute a new interface element (in16 or in12)
-    newID = len(df_elm)
-    for i in df_crack_el.itertuples():
-        n = df_elm.loc[
-            i[0], "nodes"
-        ]  # NOT i[0] as node order may have changed to maintain a consistent top/bottom
-        newID += 1
-        eltp = i[3]  # May be 16 (8-noded quad) or 9 (6-noded triangle)
-        tags = i[2]
-        # Add to the element DataFrame of the entire mesh
-        df_elm.loc[newID] = [n, [all_cracks_ID] + tags[1:], eltp]
-
-    # Add new nodes with overlapping coordinates to the DataFrame with all nodes in the mesh
-    for old, new in node_mapping.items():
-        df_nod.loc[new] = [df_nod.loc[old, "coords"]]
-
-    # Update node lists of solid elements belonging to dic_s2s.values()
-    for ke in dic_s2s.keys():
-        df_elm.at[dic_s2s[ke], "nodes"] = df_elm.loc[ke, "nodes"]
+    
+    return df, op
 
 
-def df2mesh(fname, df_phe, df_nod, df_elm):
+def set_partition_tags(surf_top, surf_bottom, top, bottom):
     """
+    surf_top    = Surface element ID representing the interface top (i.e. duplicated surface)
+    surf_bottom = Surface element ID representing the interface bottom (i.e. original surface)
+    top, bottom = Top/bottom solid element IDs attached to the active crack under consideration
+                 
+    NOTE: It is assumed that surface elements becoming interfaces are NEVER partitioned in gmsh alongside
+          the solid elements, as gmsh (v2) only seems to deal with the highest dimension when partitioning.
+          
+    TODO: Check if this behaviour changes in v3+ and update this function accordingly!
+    """
+    par0 = df_elm.loc[top, "tags"][3]
+    par1 = df_elm.loc[bottom, "tags"][3]
+    parts = set([par0, par1])
+
+    # Update the taglist of the crack lips' surfaces to include partition tags
+    df_elm.loc[surf_top, "tags"].extend([len(parts), par0])
+    df_elm.loc[surf_bottom, "tags"].extend([len(parts), par1])
+    if len(parts) > 1:
+        df_elm.loc[surf_top, "tags"].append(-par1)
+        df_elm.loc[surf_bottom, "tags"].append(-par0)
+
+
+def get_adjacent_solid_IDs(elm_ID, elm_normal, nodemap):
+    """
+    elm_ID           = Surface element ID
+    elm_normal       = Surface normal [x,y,z]
+    nodemap          = Dictionary linking original with duplicated nodes
+    
+    Returns:
+    adj_solid_IDs = List with IDs of adjacent solid elements in contact with the given surface element
+                    but NOT attached to it, provided these adjacent elements are on the 'top region' of the
+                    surface element.
+    
+    NOTE: Adjacent solid elements in `adj_solid_IDs` do share nodes with the given surface element,
+          but not an entire face (otherwise they would be attached)
+    """
+    surface_elmt = df_elm.loc[elm_ID]
+    nodes = set(surface_elmt.loc["nodes"])
+    
+    df = df_elm[[bool(set.intersection(nodes, set(L))) for L in df_elm["nodes"].values.tolist()]]
+    df = df[[i in dict_solid2solid.keys() for i in df.index]]
+
+    adj_solid_IDs = list()
+
+    for adj_ID in df.index:
+        vec = [
+            i - j
+            for i, j in zip(
+                get_elmt_centroid(df_elm.loc[adj_ID], nodemap),
+                get_elmt_centroid(surface_elmt, nodemap),
+            )
+        ]
+        
+        dot_product = sum([i * j for i, j in zip(vec, elm_normal)])
+        if dot_product > 0:
+            adj_solid_IDs.append(adj_ID)
+
+    return adj_solid_IDs
+
+
+def get_detached_adj_solids(solid_ID, crack_nodes):
+    """
+    solid_ID    = ID of the solid element under consideration
+    crack_nodes = Whole list of nodes conforming the active crack plane
+    
+    This function is meant to be used with `filter()`, to discard solid elements if they are
+    attached to any active crack surface.
+    """
+    for surface in get_attached_surfaces(solid_ID):
+        if set(df_elm.loc[surface, "nodes"]).issubset(set(crack_nodes)): return False
+    return True
+
+
+def duplicate_nodes(surf_elmt_tuple, node_mapping, active_crack_ID, op, normal_dict, crack_nodes):
+    """
+    surf_elmt_tuple = Surface element being processed
+    node_mapping    = Dictionary linking original with corresponding duplicated nodes across the crack lip
+    active_crack_ID = Active crack ID (i.e. physical tag of `surf_elmt_tuple`)
+    op              = Operator to check if a surface element belongs to the active crack plane
+    normal_dict     = Dictionary with
+                       surface_elm_ID : [outer unit normal components]
+                      as key/value pairs
+    crack_nodes     = Whole list of nodes conforming the active crack plane
+    """
+    # Pair of solid top/bottom element IDs attached to crack surface `surf_elmt_tuple`
+    top, bottom = get_top_bottom_elmts(surf_elmt_tuple[0], normal_dict[surf_elmt_tuple[0]], node_mapping)
+        
+    # TODO: Accommodate the case that an interface side is directly constrained by boundary conditions
+    if not top:
+        print("Active crack physical tag = {}".format(surf_elmt_tuple[2][0]))
+        print("Surface element {0} of type {1} is missing a solid element on top\n".format(surf_elmt_tuple[0], surf_elmt_tuple[3]))
+        return
+    
+    # List of surface elements attached to solid element on top of crack surface `surf_elmt_tuple`
+    top_attchd_surfs = get_attached_surfaces(top)
+    
+    
+    # Duplicate nodes:
+    
+    # 1) on the face of the `top` solid in contact with active crack surface `surf_elmt_tuple`
+    top_nodes = df_elm.loc[top, "nodes"]
+    df_elm.at[top, "nodes"] = [node_mapping[node]\
+                               if node in set(surf_elmt_tuple[1]) else node\
+                               for node in top_nodes]
+    
+    # 2) in contact with active crack surface `surf_elmt_tuple`
+    #    &
+    #    belonging to surfaces attached to the `top` solid that are NOT the active crack surface
+    for surface in filter(lambda s: not op(active_crack_ID, df_elm.loc[s, "tags"][0]), top_attchd_surfs):
+        nodes = df_elm.loc[surface, "nodes"]
+        df_elm.at[surface, "nodes"] = [node_mapping[node]\
+                                       if node in set(surf_elmt_tuple[1]) else node\
+                                       for node in nodes]
+        # Update surface partition tags if necessary
+        if (len(df_elm.loc[top, "tags"]) > 2 and nodes == df_elm.loc[surf_elmt_tuple[0], "nodes"]):
+            set_partition_tags(surface, surf_elmt_tuple[0], top, bottom)
+
+    # 3) of adjacent solid elements in contact with active crack surface `surf_elmt_tuple` 
+    #    &
+    #    NOT attached to the crack plane (i.e. NOT attached to any active crack surface),
+    #    alongside nodes of surfaces attached to these solids if these surfaces share nodes with active crack surface
+    adj_solid_IDs = get_adjacent_solid_IDs(surf_elmt_tuple[0], normal_dict[surf_elmt_tuple[0]], node_mapping)
+    adj_solid_IDs = list(filter(lambda ID: get_detached_adj_solids(ID, crack_nodes), adj_solid_IDs))
+    for ID in adj_solid_IDs:
+        attached_surfaces = get_attached_surfaces(ID)
+        df_elm.at[ID, "nodes"] = [node_mapping[node]\
+                                  if node in set(surf_elmt_tuple[1]) else node\
+                                  for node in df_elm.loc[ID, "nodes"]]
+        
+        for surface in attached_surfaces:
+            df_elm.at[surface, "nodes"] = [node_mapping[node]\
+                                           if node in set(surf_elmt_tuple[1]) else node\
+                                           for node in df_elm.loc[surface, "nodes"]]
+
+
+def duplicate_surfaces(df_crack_elm, common_crack_ID):
+    """
+    df_crack_elm    = Subset df_elm containing only the surface elements that are active cracks
+    common_crack_ID = Physical tag common to all cracks
+    
+    Create a new surface element per active crack surface.
+    
+    This new surface element has the physical tag common to all cracks. Hence, the pair of surface elements
+    with physical tag `common_crack_ID` (one with original nodes and the other with new duplicated ones)
+    represent the sides of an interface element (16-noded or 12-noded), the explicit creation of which is
+    FE engine dependent.
+    """
+    new_elmt_ID = len(df_elm)
+    
+    for i in df_crack_elm.itertuples():
+        # Nodes to be retrieved from `df_elm` as their order may have changed to maintain a consistent top/bottom
+        nodes = df_elm.loc[i[0], "nodes"]  
+        new_elmt_ID += 1
+        elmt_type = i[3]
+        tags = i[2]
+        df_elm.loc[new_elmt_ID] = [nodes, [common_crack_ID] + tags[1:], elmt_type]
+        
+        
+def update_nodes(node_mapping):
+    """
+    Add new duplicated nodes with overlapping coordinates to the DataFrame with all nodes in the mesh
+    """
+    for original, duplicate in node_mapping.items():
+        df_nod.loc[duplicate] = [df_nod.loc[original, "coords"]]
+        
+        
+def update_elmts(dict_solid2solid):
+    """
+    Update node lists of solid elements belonging to `dict_solid2solid.values()`
+    
+    NOTE: Could be optimised to update only the solids that actually had new nodes assigned, look into it!
+    NOTE: This needs revisiting in case dict_solid2solid.values() are tuples of size 2+
+    """
+    for solid in dict_solid2solid.keys():
+        associated_solid, = dict_solid2solid[solid]
+        df_elm.at[associated_solid, "nodes"] = df_elm.loc[solid, "nodes"]
+        
+        
+def make_crack(active_crack_ID, common_crack_ID):
+    """
+    active_crack_ID = Active crack ID (i.e. physical tag of the surface element being processed)
+    common_crack_ID = Physical tag common to all cracks
+    
+    Duplicate relevant nodes of solid/surface elements to accommodate the given crack
+    """
+    df_crack_elm, op = get_active_surf_elmts(active_crack_ID)
+        
+    # Make a list of all distinct node IDs belonging to the active cracks
+    crack_nodes = flatten([Lnod for Lnod in df_crack_elm["nodes"]])
+    crack_nodes = list(set(crack_nodes))
+    
+    # List of new node IDs for crack nodes to be duplicated
+    new_nodes = [(len(df_nod) + i + 1) for i in range(len(crack_nodes))]
+    # Dictionary mapping original nodes to corresponding duplicates across the crack lip
+    node_mapping = dict([(crack_nodes[i], new_nodes[i]) for i in range(len(crack_nodes))])
+    
+    # Initialise aux variables for orientation preprocessing
+    normal_dict = dict()
+    adj_srf_ID = 0
+    node_reordering = [0, 3, 2, 1, 7, 6, 5, 4]#<-- THIS ONLY WORKS FOR QUAD CRACKS, HOW ABOUT TRIANGLES?
+    
+    for i in df_crack_elm.itertuples():
+        
+        # Aux preprocessing to ensure that neighbouring crack elements have the same top/bottom consistently
+        if normal_dict: adj_srf_ID = get_adjacent_surface_ID(i[0], normal_dict)
+        normal_dict[i[0]] = get_unit_normal(df_elm.loc[i[0]])
+        set_top_bottom_consistency(adj_srf_ID, normal_dict, i, node_reordering)
+        
+        # Duplicate relevant nodes
+        duplicate_nodes(i, node_mapping, active_crack_ID, op, normal_dict, crack_nodes)
+    
+    # Duplicate relevant surfaces
+    duplicate_surfaces(df_crack_elm, common_crack_ID)
+
+    # Update node and element dataframes to account for all duplicates
+    update_nodes(node_mapping)
+    update_elmts(dict_solid2solid) 
+
+
+def df2mesh(file_name):
+    """
+    Create a .msh file based on the updated DataFrames and `mesh_format`.
+    
+    NOTE: The output file format corresponds to gmsh legacy format v2.*
+    
     Credit to:
     https://github.com/tjolsen/Mesh_Utilities/blob/master/gmsh_crack/gmsh_crack.py
+    on which this function is based
     """
-    f = open(fname, "w")
+    with open(file_name, "w") as f:
+        
+        # Write header
+        f.write("$MeshFormat\n")
+        f.write(" ".join(mesh_format) + "\n")
+        f.write("$EndMeshFormat\n")
 
-    # Write header
-    f.write("$MeshFormat\n")
-    f.write("2.2 0 8\n")
-    f.write("$EndMeshFormat\n")
+        # Write physical entities
+        f.write("$PhysicalNames\n")
+        f.write(str(len(df_phe)) + "\n")
+        for pe in df_phe.itertuples():
+            line = str(pe[1]) + " " + str(pe[0]) + " " + pe[2]
+            f.write(line + "\n")
+        f.write("$EndPhysicalNames\n")
 
-    # Write physical entities
-    f.write("$PhysicalNames\n")
-    f.write(str(len(df_phe)) + "\n")
-    for pe in df_phe.itertuples():
-        line = str(pe[1]) + " " + str(pe[0]) + " " + pe[2]
-        f.write(line + "\n")
-    f.write("$EndPhysicalNames\n")
+        # Write nodes
+        f.write("$Nodes\n")
+        f.write(str(len(df_nod)) + "\n")
+        for n in df_nod.itertuples():
+            line = str(n[0]) + " " + " ".join([str(i) for i in n[1]])
+            f.write(line + "\n")
+        f.write("$EndNodes\n")
 
-    # Write nodes
-    f.write("$Nodes\n")
-    f.write(str(len(df_nod)) + "\n")
-    for n in df_nod.itertuples():
-        line = str(n[0]) + " " + " ".join([str(i) for i in n[1]])
-        f.write(line + "\n")
-    f.write("$EndNodes\n")
-
-    # Write elements
-    f.write("$Elements\n")
-    f.write(str(len(df_elm)) + "\n")
-    for e in df_elm.itertuples():
-        line = (
-            str(e[0])
-            + " "
-            + str(e[3])
-            + " "
-            + str(len(e[2]))
-            + " "
-            + " ".join([str(i) for i in e[2]])
-            + " "
-            + " ".join([str(i) for i in e[1]])
-            + "\n"
-        )
-        f.write(line)
-    f.write("$EndElements")
-
-    f.close()
+        # Write elements
+        f.write("$Elements\n")
+        f.write(str(len(df_elm)) + "\n")
+        for e in df_elm.itertuples():
+            line = (
+                str(e[0])
+                + " "
+                + str(e[3])
+                + " "
+                + str(len(e[2]))
+                + " "
+                + " ".join([str(i) for i in e[2]])
+                + " "
+                + " ".join([str(i) for i in e[1]])
+                + "\n"
+            )
+            f.write(line)
+        f.write("$EndElements")
 
 
-def main():
-
-    crack_ids = -1
-    file_name = ""
-
-    # Argument sys[1] = filename
+def process_arguments():
+    """
+    Returns:
+    file_name = Name of the msh file to be processed
+    crack_IDs = List object equivalent to the input string `sys.argv[2]`, e.g. [1,[2,3],4] as
+                equivalent to '[1,[2,3],4]'
+    """
     file_name = sys.argv[1]
-
-    # Argument sys[2] = crack physical tags, with some pairs being possibly coupled if they belong to the same crack plane (e.g. [1,[2,3],4])
-    crack_ids = []
-    in_list = []
-    for i in sys.argv[2][1:-1].split(","):
-        if i.startswith("["):
-            in_list.append(int(i.strip("[")))
-        elif i.endswith("]"):
-            in_list.append(int(i.strip("]")))
-            crack_ids.append(in_list)
-            in_list = []
-        elif len(in_list) != 0:
-            in_list.append(int(i))
-        else:
-            crack_ids.append(int(i))
-
-    if crack_ids == -1:
-        print("Error: Must specify crack_ids")
-        sys.exit(1)
     if not file_name:
-        print("Error: Must specify mesh file")
+        print("Error: Must specify msh file_name")
         sys.exit(1)
-
-    df_phe, df_nod, df_elm = mesh2df(file_name)
-    dic_sld2sld = solid2solid(df_elm)
-
-    dic_srf2srf = preproc_df(df_elm, crack_ids)
-
-    for c in crack_ids[:-1]:
-        make_crack(df_nod, df_elm, c, dic_sld2sld, dic_srf2srf, crack_ids[-1])
-
-    df2mesh("cracked_" + file_name, df_phe, df_nod, df_elm)
+    
+    physical_tags = sys.argv[2]
+    if not physical_tags:
+        print("Error: Must specify tags representing crack_IDs")
+        sys.exit(1)
+        
+    crack_IDs = []
+    sub_list = []
+    
+    for tag in physical_tags[1:-1].split(","):
+        
+        if tag.startswith("["):
+            sub_list.append(int(tag.strip("[")))
+            
+        elif tag.endswith("]"):
+            sub_list.append(int(tag.strip("]")))
+            crack_IDs.append(sub_list)
+            sub_list = []
+            
+        elif len(sub_list) != 0:
+            sub_list.append(int(tag))
+            
+        else:
+            crack_IDs.append(int(tag))
+    
+    return (file_name, crack_IDs)
 
 
 if __name__ == "__main__":
-    main()
+
+    file_name, crack_IDs = process_arguments()
+    L_cr = list(flatten(crack_IDs))
+    df_phe, df_nod, df_elm, mesh_format = mesh2df(file_name)
+    dict_solid2solid = get_IDs_same_elmt(df_elm, L_cr)
+    dict_crack2crack = get_IDs_same_elmt(df_elm, L_cr, elmt_type="surface")
+    df_elm = check_tag_uniqueness(df_elm, L_cr, dict_crack2crack)
+    
+    for crack_ID in crack_IDs[:-1]:
+        make_crack(crack_ID, crack_IDs[-1])
+    
+    df2mesh("cracked_" + file_name)
