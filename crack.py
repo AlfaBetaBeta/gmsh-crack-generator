@@ -205,8 +205,8 @@ def get_IDs_same_elmt(df_elm, L_cr, elmt_type="solid"):
 
     # Create ouput dictionary from the indices of the groups
     dict_elmt2elmt = {subdf.index.values[0]: tuple(subdf.index.values[1:])\
-                      for subdf in df.values()\
-                      if len(subdf) > 1}
+                      if len(subdf) > 1 else tuple(subdf.index.values[:1])\
+                      for subdf in df.values()}
 
     return dict_elmt2elmt
 
@@ -634,7 +634,10 @@ def duplicate_nodes(surf_elmt_tuple, node_mapping, active_crack_ID, op, normal_d
             df_elm.at[surface, "nodes"] = [node_mapping[node]\
                                            if node in set(surf_elmt_tuple[1]) else node\
                                            for node in df_elm.loc[surface, "nodes"]]
-
+    
+    # Update the set of solids having their nodes duplicated
+    mapped_solids.update({top}, adj_solid_IDs)
+    
 
 def duplicate_surfaces(df_crack_elm, common_crack_ID):
     """
@@ -667,16 +670,14 @@ def update_nodes(node_mapping):
         df_nod.loc[duplicate] = [df_nod.loc[original, "coords"]]
         
         
-def update_elmts(dict_solid2solid):
+def update_elmts():
     """
-    Update node lists of solid elements belonging to `dict_solid2solid.values()`
-    
-    NOTE: Could be optimised to update only the solids that actually had new nodes assigned, look into it!
-    NOTE: This needs revisiting in case dict_solid2solid.values() are tuples of size 2+
+    Update node lists of solid elements associated to `dict_solid2solid.keys()`, provided these had
+    nodes duplicated (mapped) during processing
     """
-    for solid in dict_solid2solid.keys():
-        associated_solid, = dict_solid2solid[solid]
-        df_elm.at[associated_solid, "nodes"] = df_elm.loc[solid, "nodes"]
+    for solid in mapped_solids:
+        for associated_solid in dict_solid2solid[solid]:
+            df_elm.at[associated_solid, "nodes"] = df_elm.loc[solid, "nodes"]
         
         
 def make_crack(active_crack_ID, common_crack_ID):
@@ -717,7 +718,7 @@ def make_crack(active_crack_ID, common_crack_ID):
 
     # Update node and element dataframes to account for all duplicates
     update_nodes(node_mapping)
-    update_elmts(dict_solid2solid) 
+    update_elmts() 
 
 
 def df2mesh(file_name):
@@ -820,6 +821,7 @@ if __name__ == "__main__":
     dict_solid2solid = get_IDs_same_elmt(df_elm, L_cr)
     dict_crack2crack = get_IDs_same_elmt(df_elm, L_cr, elmt_type="surface")
     df_elm = check_tag_uniqueness(df_elm, L_cr, dict_crack2crack)
+    mapped_solids = set()
     
     for crack_ID in crack_IDs[:-1]:
         make_crack(crack_ID, crack_IDs[-1])
