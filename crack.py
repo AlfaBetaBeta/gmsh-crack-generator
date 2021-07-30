@@ -190,8 +190,9 @@ def get_IDs_same_elmt(df_elm, L_cr, elmt_type="solid"):
     NOTE: Only the following gmsh solid elements are explicitly considered here:
             * 17 = 20-noded hexahedron
             * 18 = 15-noded wedge
+            * 11 = 10-noded tetrahedron
     """
-    solid_types = [17, 18]
+    solid_types = [17, 18, 11]
     if elmt_type == "solid":
         df = df_elm[df_elm["type"].isin(solid_types)]
     elif elmt_type == "surface":
