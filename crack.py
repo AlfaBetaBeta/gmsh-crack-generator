@@ -265,7 +265,7 @@ def get_unit_normal(surface_elmt):
     return normal
 
 
-def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reordering):
+def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reordering, nodemap):
     """
     adj_srf_ID      = ID of a surface element adjacent to the one given by `elmt_tuple`
     normal_dict     = Dictionary with
@@ -273,53 +273,71 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
                       as key/value pairs
     elmt_tuple      = Surface element being processed
     node_reordering = List with the adjusted node order for a surface element to reverse its unit normal
+    nodemap         = Dictionary linking original with corresponding duplicated nodes across the crack lip
     
     NOTE: `node_reordering` only valid for quads, needs generalisation to include triangles as well
     NOTE: Adjustments needed for the case that dict_crack2crack[..] returns a tuple of size 2+ !!!!
     """
+    tolerance = 0.001
+    
     # An adjacent previously processed surface is available
     if adj_srf_ID != 0:
         
         projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], normal_dict[adj_srf_ID])]))
-        normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
         
-        if projection_sign < 0:
+        if projection_sign < -tolerance:
+            normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
             # Update crack node ordering if normal needs reversing for consistent top/bottom with adjacent surface elements
             df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
             n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
             associated_surface, = dict_crack2crack[elmt_tuple[0]]
             df_elm.at[associated_surface, "nodes"] = [n_all[x] for x in node_reordering]
             
-        if projection_sign == 0:
-            print(
-                "Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID)
-            )
-            print(
-                "Unable to orientate surface {}. Consider changing the surface processing order".format(elmt_tuple[0])
-            )
-            sys.exit(1)
+        elif abs(projection_sign) <= tolerance:
+            print("Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID))
+            top_adj_crack, bottom_adj_crack = get_top_bottom_elmts(adj_srf_ID, normal_dict[adj_srf_ID], nodemap)
+            dupl_crack, = dict_crack2crack[adj_srf_ID]
+            top_adj_dupl_crack, bottom_adj_dupl_crack = get_top_bottom_elmts(dupl_crack, normal_dict[adj_srf_ID], nodemap)
             
-    # There are previously processed surfaces but none is adjacent
+            top_adj = [top_adj_dupl_crack, top_adj_crack][bool(top_adj_crack)]
+            bottom_adj = [bottom_adj_dupl_crack, bottom_adj_crack][bool(bottom_adj_crack)]
+            
+            top_current, bottom_current = get_top_bottom_elmts(elmt_tuple[0], normal_dict[elmt_tuple[0]], nodemap)
+            
+            if (top_adj == top_current) or (bottom_adj == bottom_current):
+                print("Orientation of surface {} validated".format(elmt_tuple[0]))
+                
+            elif (top_adj == bottom_current) or (bottom_adj == top_current):
+                normal_dict[elmt_tuple[0]] = list(map(lambda x: -x, normal_dict[elmt_tuple[0]]))
+                df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
+                n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
+                associated_surface, = dict_crack2crack[elmt_tuple[0]]
+                df_elm.at[associated_surface, "nodes"] = [n_all[x] for x in node_reordering]
+                print("Orientation of surface {} reversed".format(elmt_tuple[0]))
+                
+            else:
+                print("Unable to orientate surface {}, consider assigning it\
+                a different tag to be processed separately from surface {}".format(elmt_tuple[0], adj_srf_ID))
+                sys.exit(1)
+            
+    # There are previously processed surfaces but none is adjacent (or current surface is the first to be processed)
     elif adj_srf_ID == 0 and len(normal_dict) >= 1:
         
         avg_normal = [sum(x) / len(normal_dict) for x in zip(*normal_dict.values())]
         projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], avg_normal)]))
         normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
         
-        if projection_sign < 0:
+        if projection_sign < -tolerance:
             # Update crack node ordering if normal needs reversing for consistent top/bottom with adjacent surface elements
             df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
             n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
             associated_surface, = dict_crack2crack[elmt_tuple[0]]
             df_elm.at[associated_surface, "nodes"] = [n_all[x] for x in node_reordering]
             
-        if projection_sign == 0:
-            print(
-                "Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID)
-            )
-            print(
-                "Unable to orientate surface {}. Consider changing the surface processing order".format(elmt_tuple[0])
-            )
+        elif abs(projection_sign) <= tolerance:
+            print("Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID))
+            print("Unable to orientate surface {}, consider assigning it\
+            a different tag to be processed separately from surface {}".format(elmt_tuple[0], adj_srf_ID))
             sys.exit(1)
 
             
@@ -387,11 +405,15 @@ def get_top_bottom_elmts(elm_ID, elm_normal, nodemap):
         sys.exit(1)
 
     if len(top_bottom) == 1:
+        corner_node = n3[0]
+        if corner_node not in df_nod.index:
+            corner_node = [k for k,v in nodemap.items() if v == corner_node][0]
+            
         vec = [
             i - j
             for i, j in zip(
                 get_elmt_centroid(df_elm.loc[top_bottom[0]], nodemap),
-                df_nod.loc[n3[0], "coords"],
+                df_nod.loc[corner_node, "coords"],
             )
         ]
         dot_product = sum([i * j for i, j in zip(vec, elm_normal)])
@@ -683,7 +705,7 @@ def make_crack(active_crack_ID, common_crack_ID):
         # Aux preprocessing to ensure that neighbouring crack elements have the same top/bottom consistently
         if normal_dict: adj_srf_ID = get_adjacent_surface_ID(i[0], normal_dict)
         normal_dict[i[0]] = get_unit_normal(df_elm.loc[i[0]])
-        set_top_bottom_consistency(adj_srf_ID, normal_dict, i, node_reordering)
+        set_top_bottom_consistency(adj_srf_ID, normal_dict, i, node_reordering, node_mapping)
         
         # Duplicate relevant nodes
         duplicate_nodes(i, node_mapping, active_crack_ID, op, normal_dict, crack_nodes)
