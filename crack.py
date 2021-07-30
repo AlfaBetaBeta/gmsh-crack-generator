@@ -136,7 +136,7 @@ def check_tag_uniqueness(df_elm, L_cr, dict_crack2crack):
     Returns:
     df_elm = DataFrame of elements with a unique elementary tag for each distinct surface element
     
-    NOTE: Look into necessary adjustments if dict_crack2crack.values() are tuples of size 2+
+    TODO: Look into necessary adjustments if dict_crack2crack.values() are tuples of size 2+
     """
 
     # Mask to subset rows with:
@@ -197,7 +197,7 @@ def get_IDs_same_elmt(df_elm, L_cr, elmt_type="solid"):
     elif elmt_type == "surface":
         df = df_elm[[L[0] in L_cr for L in df_elm["tags"]]]
     
-    # Transform df_solid into a DataFrame of strings (to facilitate vectorisation)
+    # Transform df into a DataFrame of strings (to facilitate vectorisation)
     df = df.applymap(str)
 
     # Group the DataFrame by nodes (i.e. strings embedding lists)
@@ -214,14 +214,12 @@ def get_IDs_same_elmt(df_elm, L_cr, elmt_type="solid"):
 def get_adjacent_surface_ID(elm_ID, normal_dict):
     """
     elm_ID = Surface element ID (NOT included in normal_dict)
-    normal_dict = Dictionary with
-                   surface_elm_ID : [outer unit normal components]
-                  as key/value pairs
+    normal_dict = Dictionary storing the outer normals of all processed surface elements
     
     Returns:
-    adj_ID = ID of one surface element in normal_dict sharing at least one node with the given element
+    adj_ID = ID of one surface element in `normal_dict` sharing at least one node with the given element
     
-    NOTE: If normal_dict contains no neighbouring surface elements, then 0 is returned as ID
+    NOTE: If `normal_dict` contains no neighbouring surface elements, then 0 is returned as ID
     """
     adj_ID = 0
     for k in normal_dict.keys():
@@ -275,8 +273,7 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
     node_reordering = List with the adjusted node order for a surface element to reverse its unit normal
     nodemap         = Dictionary linking original with corresponding duplicated nodes across the crack lip
     
-    NOTE: `node_reordering` only valid for quads, needs generalisation to include triangles as well
-    NOTE: Adjustments needed for the case that dict_crack2crack[..] returns a tuple of size 2+ !!!!
+    TODO: Adjustments needed for the case that dict_crack2crack[..] returns a tuple of size 2+ !!!!
     """
     tolerance = 0.001
     
@@ -286,8 +283,9 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
         projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], normal_dict[adj_srf_ID])]))
         
         if projection_sign < -tolerance:
+            # Reverse unit normal
             normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
-            # Update crack node ordering if normal needs reversing for consistent top/bottom with adjacent surface elements
+            # Update crack node ordering to comply with new normal (necessary if surfaces across crack lips become an interface)
             df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
             n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
             associated_surface, = dict_crack2crack[elmt_tuple[0]]
@@ -308,7 +306,9 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
                 print("Orientation of surface {} validated".format(elmt_tuple[0]))
                 
             elif (top_adj == bottom_current) or (bottom_adj == top_current):
+                # Reverse unit normal
                 normal_dict[elmt_tuple[0]] = list(map(lambda x: -x, normal_dict[elmt_tuple[0]]))
+                # Update crack node ordering to comply with new normal (necessary if surfaces across crack lips become an interface)
                 df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
                 n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
                 associated_surface, = dict_crack2crack[elmt_tuple[0]]
@@ -323,11 +323,13 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
     # There are previously processed surfaces but none is adjacent (or current surface is the first to be processed)
     elif adj_srf_ID == 0 and len(normal_dict) >= 1:
         
+        # Compare current unit normal with average normal over all previously processed surfaces within the active crack plane
         avg_normal = [sum(x) / len(normal_dict) for x in zip(*normal_dict.values())]
         projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], avg_normal)]))
-        normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
         
         if projection_sign < -tolerance:
+            # Reverse unit normal
+            normal_dict[elmt_tuple[0]] = list(map(lambda x: x * projection_sign, normal_dict[elmt_tuple[0]]))
             # Update crack node ordering if normal needs reversing for consistent top/bottom with adjacent surface elements
             df_elm.at[elmt_tuple[0], "nodes"] = [elmt_tuple[1][x] for x in node_reordering]
             n_all = df_elm.loc[dict_crack2crack[elmt_tuple[0]], "nodes"]
@@ -458,7 +460,7 @@ def get_attached_surfaces(elm_ID):
     nodes_per_face = {16: 8, 9: 6}
     attchd_surfs = []
 
-    if elm_ID not in set(df_elm.index):
+    if elm_ID not in df_elm.index:
         print("There is no solid element with ID = {} in get_attached_surfaces()".format(elm_ID))
         print("Most likely caused because the active crack has no top element")
         return attchd_surfs
@@ -698,14 +700,14 @@ def make_crack(active_crack_ID, common_crack_ID):
     # Initialise aux variables for orientation preprocessing
     normal_dict = dict()
     adj_srf_ID = 0
-    node_reordering = [0, 3, 2, 1, 7, 6, 5, 4]#<-- THIS ONLY WORKS FOR QUAD CRACKS, HOW ABOUT TRIANGLES?
+    node_reordering = {16: [0, 3, 2, 1, 7, 6, 5, 4], 9: [0, 2, 1, 5, 4, 3]}
     
     for i in df_crack_elm.itertuples():
         
         # Aux preprocessing to ensure that neighbouring crack elements have the same top/bottom consistently
         if normal_dict: adj_srf_ID = get_adjacent_surface_ID(i[0], normal_dict)
         normal_dict[i[0]] = get_unit_normal(df_elm.loc[i[0]])
-        set_top_bottom_consistency(adj_srf_ID, normal_dict, i, node_reordering, node_mapping)
+        set_top_bottom_consistency(adj_srf_ID, normal_dict, i, node_reordering[i[3]], node_mapping)
         
         # Duplicate relevant nodes
         duplicate_nodes(i, node_mapping, active_crack_ID, op, normal_dict, crack_nodes)
