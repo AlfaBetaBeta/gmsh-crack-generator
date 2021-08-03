@@ -58,9 +58,9 @@ $ python crack.py name_of_uncracked_file.msh [list with all crack physical tags]
 * The first argument is the name of the `msh` file containing the entire uncracked mesh. Check the [caveats](https://github.com/AlfaBetaBeta/gmsh-crack-generator#caveats-and-shortcomings) to see the types of solid elements that are admissible, as well as the file format that is expected.
 * In general, the list with the crack tags can be arbitrarily long (recall that different crack planes may be assigned different tags should this be convenient) but in any case **the last list item must always be the common tag encapsulating all surfaces**. In this example, such list is simply `[3,4]`. If the arguments were passed from within an interpreter (e.g. Spyder: `Run/Configuration per file.../Command line options`) the list could be passed as is, but from the terminal it needs to prepended by `\` to avoid confusion with pattern matching.
 * The third argument is *optional*, and refers to the the granularity with which the crack surface elements shall be ultimately stored in the output `msh` file alongside the solids. The storing granularity levels are defined as:
-    * `0` : all crack surface elements are stored in the output file (*default*)
-    * `1` : only crack surfaces with the common tag are stored in the output file
-    * `2` : no crack surfaces are stored in the output file
+    * `0` all crack surface elements are stored in the output file (*default*)
+    * `1` only crack surfaces with the common tag are stored in the output file
+    * `2` no crack surfaces are stored in the output file
 
 Hence, execution of the script on `test1.msh` from the terminal (with default storing granularity, as assumed in all test examples) reads:
 ```
@@ -210,3 +210,13 @@ Following the indicated processing order (shown right), at the time of processin
 Although in this mesh the orthogonal planes are adjacent and processed successively, they do not share common solids (each plane is attached to a different wedge element), and hence orientating whichever surface is processed in second place becomes ambiguous.
 
 **Note that in both cases execution would run satisfactorily just by tagging vertical and horizontal cracks differently**.
+
+### Impact of the storing granularity argument on the output file
+
+As already commented in previous sections, it might be of interest to programmatically retrieve surfaces sharing a common elementary tag and transform them into zero-thickness interface elements. This is what is assumed by default, and hence omitting the third argument (or explicitly setting it to `0`) when executing the script produces a `msh` file including all initial crack surface elements of gmsh type `16` or `9` and their duplicates.
+
+If there is no need for interface elements, and the cracks are simply to be represented as detachments between solid elements, it is arguably neater to dispense with the crack surface elements after processing and not to include them in the output file, as they have already fulfilled their purpose. Illustratively, below is a comparison between relevant snippets of the `msh` files resulting from executing [Test example 1]() with different values of the third argument.
+
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-3rd-arg-comparison.png" width=100% height=100%>
+
+Note that the number of physical entities and elements are adjusted automatically, leaving the original indices in place.
