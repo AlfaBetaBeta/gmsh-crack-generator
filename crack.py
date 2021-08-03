@@ -785,6 +785,11 @@ def process_arguments():
     file_name = Name of the msh file to be processed
     crack_IDs = List object equivalent to the input string `sys.argv[2]`, e.g. [1,[2,3],4] as
                 equivalent to '[1,[2,3],4]'
+    crack_store_level = Category indicating the granularity of the crack surface elements to be ultimately
+                        stored in the output msh file alongside the solids, as per below:
+                        0 : all crack surface elements are kept (default)
+                        1 : only crack surfaces tagged with `crack_IDs[-1]` are kept
+                        2 : no crack surfaces are kept
     """
     file_name = sys.argv[1]
     if not file_name:
@@ -794,6 +799,9 @@ def process_arguments():
     physical_tags = sys.argv[2]
     if not physical_tags:
         print("Error: Must specify tags representing crack_IDs")
+        sys.exit(1)
+    elif not physical_tags[0] + physical_tags[-1] == str([]):
+        print("Error: Tags representing crack_IDs must be passed as a list")
         sys.exit(1)
         
     crack_IDs = []
@@ -814,13 +822,20 @@ def process_arguments():
             
         else:
             crack_IDs.append(int(tag))
+              
+    crack_store_level = len(sys.argv[3:])
+    if crack_store_level > 1:
+        print("Error: At most 3 arguments expected, {} passed instead".format(2 + crack_store_level))
+        sys.exit(1) 
+    if crack_store_level:
+        crack_store_level = int(sys.argv[3:][0])
     
-    return (file_name, crack_IDs)
+    return (file_name, crack_IDs, crack_store_level)
 
 
 if __name__ == "__main__":
 
-    file_name, crack_IDs = process_arguments()
+    file_name, crack_IDs, crack_store_level = process_arguments()
     L_cr = list(flatten(crack_IDs))
     df_phe, df_nod, df_elm, mesh_format = mesh2df(file_name)
     dict_solid2solid = get_IDs_same_elmt(df_elm, L_cr)
@@ -830,5 +845,10 @@ if __name__ == "__main__":
     
     for crack_ID in crack_IDs[:-1]:
         make_crack(crack_ID, crack_IDs[-1])
-    
+              
+    surface_delete = {1: L_cr[:-1], 2: L_cr}
+    if crack_store_level:
+        df_phe = df_phe[~df_phe.index.isin(surface_delete[crack_store_level])]
+        df_elm = df_elm[~df_elm["tags"].map(lambda t: t[0]).isin(surface_delete[crack_store_level])]
+              
     df2mesh("cracked_" + file_name)
