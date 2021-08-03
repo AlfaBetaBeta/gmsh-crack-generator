@@ -215,7 +215,7 @@ Although in this mesh the orthogonal planes are adjacent and processed successiv
 
 As already commented in previous sections, it might be of interest to programmatically retrieve surfaces sharing a common elementary tag and transform them into zero-thickness interface elements. This is what is assumed by default, and hence omitting the third argument (or explicitly setting it to `0`) when executing the script produces a `msh` file including all initial crack surface elements of gmsh type `16` or `9` and their duplicates.
 
-If there is no need for interface elements, and the cracks are simply to be represented as detachments between solid elements, it is arguably neater to dispense with the crack surface elements after processing and not to include them in the output file, as they have already fulfilled their purpose. Illustratively, below is a comparison between relevant snippets of the `msh` files resulting from executing [Test example 1]() with different values of the third argument.
+If there is no need for interface elements, and the cracks are simply to be represented as detachments between solid elements, it is arguably neater to dispense with the crack surface elements after processing and not to include them in the output file, as they have already fulfilled their purpose. Illustratively, below is a comparison between relevant snippets of the `msh` files resulting from executing [Test example 1](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-1-execution-syntax-and-program-output) with different values of the third argument.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test1/test1-3rd-arg-comparison.png" width=100% height=100%>
 
