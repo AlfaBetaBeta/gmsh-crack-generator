@@ -317,15 +317,19 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
                 print("Orientation of surface {} reversed".format(elmt_tuple[0]))
                 
             else:
-                print("Unable to orientate surface {}, consider assigning it\
-                a different tag to be processed separately from surface {}".format(elmt_tuple[0], adj_srf_ID))
+                print("Unable to orientate surface {}, consider assigning it a different tag to be processed separately from surface {}".format(elmt_tuple[0], adj_srf_ID))
                 sys.exit(1)
             
     # There are previously processed surfaces but none is adjacent (or current surface is the first to be processed)
-    elif adj_srf_ID == 0 and len(normal_dict) >= 1:
+    elif adj_srf_ID == 0:
         
         # Compare current unit normal with average normal over all previously processed surfaces within the active crack plane
-        avg_normal = [sum(x) / len(normal_dict) for x in zip(*normal_dict.values())]
+        if len(normal_dict) > 1:
+            dict_prev_surfs = {k: v for k,v in normal_dict.items() if k != elmt_tuple[0]}
+            avg_normal = [sum(x) / len(dict_prev_surfs) for x in zip(*dict_prev_surfs.values())]
+        else:
+            avg_normal = [sum(x) / len(normal_dict) for x in zip(*normal_dict.values())]
+            
         projection_sign = np.sign(sum([v1 * v2 for v1, v2 in zip(normal_dict[elmt_tuple[0]], avg_normal)]))
         
         if projection_sign < -tolerance:
@@ -338,9 +342,9 @@ def set_top_bottom_consistency(adj_srf_ID, normal_dict, elmt_tuple, node_reorder
             df_elm.at[associated_surface, "nodes"] = [n_all[x] for x in node_reordering]
             
         elif abs(projection_sign) <= tolerance:
-            print("Surface {} is perpendicular to previously processed surface {}".format(elmt_tuple[0], adj_srf_ID))
-            print("Unable to orientate surface {}, consider assigning it\
-            a different tag to be processed separately from surface {}".format(elmt_tuple[0], adj_srf_ID))
+            print("Surface {} is perpendicular to previously processed surfaces".format(elmt_tuple[0]))
+            print("Unable to orientate surface {}".format(elmt_tuple[0]))
+            print("Consider assigning it a different tag to be processed separately or check the surface processing order")
             sys.exit(1)
 
             
