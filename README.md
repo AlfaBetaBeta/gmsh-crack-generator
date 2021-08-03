@@ -21,7 +21,7 @@ Consider an overly simplistic mesh made of two quadratic hexahedrons, as shown b
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/pre-crack-pe-nodes-elmts.png" width=100% height=100%>
 
-The surfaces to be duplicated need to be tagged as well. Although in this simplistic example there is only one feasible surface, in an extensive solid mesh many such surfaces may coalesce into a (possibly curved) crack plane. Each crack plane can have its own physical tag (here `"crack_horizontal"`) or various crack planes can share a common tag (see the caveats for elaborations on how to tag surfaces appropriately). The reason behind individual tagging is that, after cracking, each surface and its duplicate peer can be further transformed into a zero-thickness interface element and it may be convenient to differentiate between sets of crack planes (i.e. interface types) to assign to them different material properties. The explicit transformation into interface elements is not addressed here, as it is FE engine dependent, but indication is made as to how it could be done wherever appropriate. Regardless of the number of physical tags for crack planes, **all** surfaces to be duplicated need to be grouped by a common tag (here `"s2in"`) as well. Ultimately, this is necessary precisely to facilitate the definition of interface elements, as will become apparent with the examples.
+The surfaces to be duplicated need to be tagged as well. Although in this simplistic example there is only one feasible surface, in an extensive solid mesh many such surfaces may coalesce into a (possibly curved) crack plane. Each crack plane can have its own physical tag (here `"crack_horizontal"`) or various crack planes can share a common tag (see the [caveats](https://github.com/AlfaBetaBeta/gmsh-crack-generator#caveats-and-shortcomings) for elaborations on how to tag surfaces appropriately). The reason behind individual tagging is that, after cracking, each surface and its duplicate peer can be further transformed into a zero-thickness interface element and it may be convenient to differentiate between sets of crack planes (i.e. interface types) to assign to them different material properties. The explicit transformation into interface elements is not addressed here, as it is FE engine dependent, but indication is made as to how it could be done wherever appropriate. Regardless of the number of physical tags for crack planes, **all** surfaces to be duplicated need to be grouped by a common tag (here `"s2in"`) as well. Ultimately, this is necessary precisely to facilitate the definition of interface elements, as will become apparent with the examples.
 
 Shifting focus back on the simplistic mesh, once `crack.py` is executed (guidelines on execution syntax can be found in [test example 1](https://github.com/AlfaBetaBeta/gmsh-crack-generator#test-example-1)), the tagged surface is duplicated, effectively decoupling the two adjacent solid elements. This is shown below, whereby a virtual crack opening is induced for visual clarity (in reality the nodes at each crack side initially overlap in the same location). 
 
@@ -37,7 +37,7 @@ In principle, the process of duplicating the tagged surface follows a simple geo
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/intro/surface-normal-aux.png" width=70% height=70%>
 
-The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is virtually open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are indeed in place to accommodate this.
+The *bottom* solid retains the original surface nodes, whereas the *top* solid is detached from it and is assigned new duplicate nodes with the same coordinates as the originals (though in the figure the crack is virtually open for clarity). In extensive meshes, it is important to ensure that all surface elements with a common tag (i.e. all the surfaces belonging to the same crack plane) share the same *top* and *bottom* criterion for their adjacent solid elements, and provisions are indeed in place to accommodate this (see the [caveats](https://github.com/AlfaBetaBeta/gmsh-crack-generator#caveats-and-shortcomings)).
 
 
 ## Test example 1: execution syntax and program output
@@ -148,10 +148,10 @@ In its current form, the program only considers solid meshes formed by **20-node
 ### `msh` file format
 
 `crack.py` was developed for an old version of gmsh (2.2) and hence it expects the `.msh` file to comply with the [legacy version 2 format](https://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-2-_0028Legacy_0029), comprising only the following headers:
-    * `$MeshFormat`
-    * `$PhysicalNames`
-    * `$Nodes`
-    * `$Elements`
+* `$MeshFormat`
+* `$PhysicalNames`
+* `$Nodes`
+* `$Elements`
 
 ### Surface physical tags
       
@@ -169,9 +169,9 @@ Each plane has a distinct tag (`"crack_vertical"` and `"crack_horizontal"`, proc
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test6/test6b-postcrack-nodes.png" width=100% height=100%>
 
-Note that the original nodes `5`, `37` and `12` have been duplicated twice, once per tag. If instead both planes had been assigned the same physical tag (thereby introducing a right angle kink within a single crack entity), the resulting cracked surfaces would appear as below:
+Note that the original nodes `5`, `37` and `12` (at the tip of the right angle) have been duplicated twice, once per tag. If instead both planes had been assigned the same physical tag (thereby introducing a right angle kink within a single crack entity), the resulting cracked surfaces would appear as below:
 
-<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/caveats/test6a-postcrack-surfaces.png" width=100% height=100%>
+<img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test6/test6a-postcrack-surfaces.png" width=100% height=100%>
 
 with the following node configuration:
 
@@ -185,10 +185,10 @@ Further risks of assigning a single tag to orthogonal crack planes can be seen b
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test6/test6c-precrack-normals-proc-order.png" width=100% height=100%>
 
-Following the indicated processing order, at the time of processing the second surface element no adjacencies are available, and with the unit normals being orthogonal with no common solids, the script cannot unambiguously determine the orientation of the surface.
+Following the indicated processing order (shown right), at the time of processing the second surface element no adjacencies are available, and with the unit normals (shown left) being orthogonal with no common solids, the script cannot unambiguously determine the orientation of the surface.
 
 <img src="https://github.com/AlfaBetaBeta/gmsh-crack-generator/blob/master/img/test6/test6d-precrack-distinct-attchd-solids.png" width=100% height=100%>
 
 Although in this mesh the orthogonal planes are adjacent and processed successively, they do not share common solids (each plane is attached to a different wedge element), and hence orientating whichever surface is processed in second place becomes ambiguous.
 
-Note that in both cases execution would run satisfactorily just by tagging vertical and horizontal cracks differently.
+**Note that in both cases execution would run satisfactorily just by tagging vertical and horizontal cracks differently**.
