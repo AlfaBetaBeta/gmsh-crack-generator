@@ -191,8 +191,10 @@ def get_IDs_same_elmt(df_elm, L_cr, elmt_type="solid"):
             * 17 = 20-noded hexahedron
             * 18 = 15-noded wedge
             * 11 = 10-noded tetrahedron
+            * 5  = 8-noded hexahedron
+            * 4  = 4-noded tetrahedron
     """
-    solid_types = [17, 18, 11]
+    solid_types = [17, 18, 11, 4, 5]
     if elmt_type == "solid":
         df = df_elm[df_elm["type"].isin(solid_types)]
     elif elmt_type == "surface":
@@ -461,8 +463,10 @@ def get_attached_surfaces(elm_ID):
     NOTE: Only the following gmsh surface elements are explicitly considered here:
             * 16 = 8-noded quad
             * 9  = 6-noded triangle
+            * 3  = 4-noded quad
+            * 2  = 3-noded triangle
     """
-    nodes_per_face = {16: 8, 9: 6}
+    nodes_per_face = {16: 8, 9: 6, 3: 4, 2: 3}
     attchd_surfs = []
 
     if elm_ID not in df_elm.index:
@@ -706,7 +710,7 @@ def make_crack(active_crack_ID, common_crack_ID):
     # Initialise aux variables for orientation preprocessing
     normal_dict = dict()
     adj_srf_ID = 0
-    node_reordering = {16: [0, 3, 2, 1, 7, 6, 5, 4], 9: [0, 2, 1, 5, 4, 3]}
+    node_reordering = {16: [0, 3, 2, 1, 7, 6, 5, 4], 9: [0, 2, 1, 5, 4, 3], 3: [0, 3, 2, 1], 2: [0, 2, 1]}
     
     for i in df_crack_elm.itertuples():
         
